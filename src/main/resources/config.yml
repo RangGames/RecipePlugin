@@ -1,0 +1,12 @@
+database:
+  host: "localhost:3306"
+  name: "recipe"
+  user: "root"
+  password: ""
+server-name: "server1"
+auto-save:
+  interval: 300
+  enabled: true
+debug:
+  enabled: false
+  log-level: "INFO"

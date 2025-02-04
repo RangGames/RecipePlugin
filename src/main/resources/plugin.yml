@@ -1,0 +1,14 @@
+name: RecipePlugin
+version: '1.0.1'
+main: gaya.pe.kr.core.RecipePlugin
+api-version: 1.21
+depend:
+  - LuckPerms
+authors: [ GAYA_SOFT ]
+description: Recipe Plugin 1.21
+website: gaya.pe.kr
+
+
+commands:
+  요리:
+    permission-message: "사용할 수 없는 명령어 입니다"

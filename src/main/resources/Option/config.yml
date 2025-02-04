@@ -1,0 +1,28 @@
+
+item:
+  before_item:
+    material: "OAK_SIGN"
+    custom_model_data: 0
+    display_name: "&f이전페이지"
+    lore:
+      - "&f클릭 시 이전 페이지로 이동합니다"
+  after_item:
+    material: "OAK_SIGN"
+    custom_model_data: 0
+    display_name: "&f다음 페이지"
+    lore:
+      - "&f클릭 시 다음 페이지로 이동합니다"
+  craft_item:
+    material: "ANVIL"
+    custom_model_data: 0
+    display_name: "&6제작하기"
+    lore:
+      - "&f클릭 시 아이템을 제작합니다"
+
+gui_title:
+  check_word: "요리" # 해당 단어로 구분함 색코드 X 밑에서 넣어주시면 됩니다
+  title: "&f%check_word%/%page%" # 타이틀
+  cook_equipment: "요리 장비"
+
+bossBar:
+  title: "&f요리 완성 까지 남은 시간 %time% 입니다"
