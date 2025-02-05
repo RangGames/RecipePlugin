@@ -1,8 +1,10 @@
 package gaya.pe.kr.player.reactor;
 
 import gaya.pe.kr.core.RecipePlugin;
+import gaya.pe.kr.core.events.CookInventorySavedEvent;
 import gaya.pe.kr.core.util.filter.Filter;
 import gaya.pe.kr.core.util.method.EventUtil;
+import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.player.data.PlayerPersistent;
 import gaya.pe.kr.player.manager.PlayerCauldronManager;
 import gaya.pe.kr.recipe.manager.RecipeServiceManager;
@@ -82,11 +84,16 @@ implements Listener {
         Player closerPlayer = (Player)event.getPlayer();
         if (closerPlayer.getUniqueId().equals(this.player.getUniqueId()) && closedInventory.equals(this.inventory)) {
             ItemStack targetItem = closedInventory.getItem(4);
+            CookInventorySavedEvent cookInventorySavedEvent;
             if (!Filter.isNullOrAirItem(targetItem)) {
                 this.playerPersistent.setCookEquipment(targetItem);
+                cookInventorySavedEvent = new CookInventorySavedEvent(player.getUniqueId(), "equipment", ObjectConverter.getObjectAsString(targetItem));
+
             } else {
                 this.playerPersistent.setCookEquipment(null);
+                cookInventorySavedEvent = new CookInventorySavedEvent(player.getUniqueId(), "equipment", "");
             }
+            Bukkit.getPluginManager().callEvent(cookInventorySavedEvent);
             ItemStack cursorItem = closerPlayer.getItemOnCursor();
             if (!Filter.isNullOrAirItem(cursorItem)) {
                 ItemStack itemStack = cursorItem.clone();

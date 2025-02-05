@@ -1,5 +1,5 @@
 name: RecipePlugin
-version: '1.0.1'
+version: ${project.version}
 main: gaya.pe.kr.core.RecipePlugin
 api-version: 1.21
 depend:
@@ -7,7 +7,6 @@ depend:
 authors: [ GAYA_SOFT ]
 description: Recipe Plugin 1.21
 website: gaya.pe.kr
-
 
 commands:
   요리:

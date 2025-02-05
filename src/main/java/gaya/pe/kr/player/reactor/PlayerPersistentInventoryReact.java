@@ -1,7 +1,9 @@
 package gaya.pe.kr.player.reactor;
 
 import gaya.pe.kr.core.RecipePlugin;
+import gaya.pe.kr.core.events.CookInventorySavedEvent;
 import gaya.pe.kr.core.util.method.EventUtil;
+import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.player.data.PlayerPersistent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -48,11 +50,16 @@ implements Listener {
         Inventory closedInventory;
         Player player = (Player)event.getPlayer();
         if (this.getPlayer().equals(player) && this.inventory.equals(closedInventory = event.getInventory())) {
+            CookInventorySavedEvent cookInventorySavedEvent;
             if (this.virtualInventory) {
                 this.playerPersistent.setVirtualInventory(closedInventory.getContents());
+                cookInventorySavedEvent = new CookInventorySavedEvent(player.getUniqueId(), "virtual", ObjectConverter.getObjectAsString(closedInventory.getContents()));
             } else {
                 this.playerPersistent.setItemStacks(closedInventory.getContents());
+                cookInventorySavedEvent = new CookInventorySavedEvent(player.getUniqueId(), "inventory", ObjectConverter.getObjectAsString(closedInventory.getContents()));
             }
+            Bukkit.getPluginManager().callEvent(cookInventorySavedEvent);
+
             HandlerList.unregisterAll((Listener)this);
         }
     }

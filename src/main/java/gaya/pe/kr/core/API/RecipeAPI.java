@@ -5,6 +5,8 @@ import com.google.gson.GsonBuilder;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import gaya.pe.kr.core.RecipePlugin;
+import gaya.pe.kr.core.events.CookLoadingEvent;
+import gaya.pe.kr.core.events.CookSavedEvent;
 import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.player.data.PlayerPersistent;
 import gaya.pe.kr.player.manager.PlayerCauldronManager;
@@ -375,6 +377,7 @@ public class RecipeAPI {
 
     private boolean applyPlayerData(UUID uuid, String cookInfo, String invInfo) {
         try {
+
             if (invInfo != null && !invInfo.equals("{}")) {
                 JSONObject invData = (JSONObject) new JSONParser().parse(invInfo);
                 PlayerPersistent persistent = PlayerCauldronManager.getInstance().getPlayerCauldron(uuid);
@@ -398,7 +401,8 @@ public class RecipeAPI {
                     applyCookingStatus(uuid, cookData);
                 }
             }
-
+            CookLoadingEvent cookLoadingEvent = new CookLoadingEvent(uuid, cookInfo, invInfo);
+            Bukkit.getPluginManager().callEvent(cookLoadingEvent);
             return true;
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to apply player data: " + e.getMessage());
@@ -494,6 +498,9 @@ public class RecipeAPI {
 
                 stmt.executeUpdate();
                 conn.commit();
+
+                CookSavedEvent cookSavedEvent = new CookSavedEvent(uuid, cookInfo, invInfo);
+                Bukkit.getPluginManager().callEvent(cookSavedEvent);
 
                 PlayerTransferData data = transferData.get(uuid);
                 if (data != null) {

@@ -2,6 +2,8 @@ package gaya.pe.kr.recipe.scheduler;
 
 import gaya.pe.kr.core.API.RecipeAPI;
 import gaya.pe.kr.core.RecipePlugin;
+import gaya.pe.kr.core.events.CookAddedEvent;
+import gaya.pe.kr.core.events.CookLoadingEvent;
 import gaya.pe.kr.core.util.SchedulerUtil;
 import gaya.pe.kr.core.util.filter.Filter;
 import gaya.pe.kr.core.util.method.EventUtil;
@@ -136,6 +138,8 @@ Listener {
             itemStackList.add(itemStack);
         }
         if (this.recipe.makeItem(this.uuid, playerPersistent, itemStackList, 1)) {
+            CookAddedEvent cookAddedEvent = new CookAddedEvent(uuid, recipe, playerPersistent.toString());
+            Bukkit.getPluginManager().callEvent(cookAddedEvent);
             ++this.nowMakeItemAmount;
             this.time = 0;
             if (this.nowMakeItemAmount >= this.amount) {

@@ -1,6 +1,9 @@
 package gaya.pe.kr.player.data;
 
+import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.core.util.method.UtilMethod;
+
+import java.util.Arrays;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
@@ -11,6 +14,7 @@ public class PlayerPersistent {
     ItemStack[] itemStacks = new ItemStack[54];
     ItemStack[] virtualInventory = new ItemStack[54];
     ItemStack cookEquipment;
+
 
     public PlayerPersistent(UUID uuid) {
         this.uuid = uuid;
@@ -53,6 +57,16 @@ public class PlayerPersistent {
 
     public void setCookEquipment(ItemStack cookEquipment) {
         this.cookEquipment = cookEquipment;
+    }
+
+    @Override
+    public String toString() {
+        return "PlayerPersistent{" +
+                "uuid=" + uuid +
+                ", itemStacks=" + ObjectConverter.getObjectAsString(itemStacks) +
+                ", virtualInventory=" + ObjectConverter.getObjectAsString(virtualInventory) +
+                ", cookEquipment=" + ObjectConverter.getObjectAsString(cookEquipment) +
+                '}';
     }
 }
 
