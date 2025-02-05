@@ -21,18 +21,22 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import util.PostPostion;
 
+import static gaya.pe.kr.core.util.method.UtilMethod.getItemDisplay;
+
 public final class Recipe {
     private final String recipeName;
     private int makeTime;
     private int sortOrder;
     private ItemStack recipeItem;
     private ItemStack result;
+    private String resultName;
     private Ingredient ingredient;
 
     private Recipe(RecipeBuilder recipeBuilder) {
         this.recipeName = recipeBuilder.recipeName;
         this.makeTime = recipeBuilder.makeTime;
         this.recipeItem = recipeBuilder.recipeItem;
+        this.resultName = getItemDisplay(recipeItem);
         this.result = recipeBuilder.result;
         this.ingredient = recipeBuilder.ingredient;
         this.sortOrder = recipeBuilder.sortOrder;
@@ -74,7 +78,7 @@ public final class Recipe {
                 int removeAmount = UtilMethod.deletePlayerItem(ingredient, removeIngredientAmount, itemStackList);
                 ItemStack cloneIngredient = ingredient.clone();
                 cloneIngredient.setAmount(removeAmount);
-                String errorMsg = String.format("%s&7"+ PostPostion.postpostion(UtilMethod.getItemDisplay(ingredient),2) +" %d개 부족합니다", UtilMethod.getItemDisplay(ingredient), removeIngredientAmount - removeAmount);
+                String errorMsg = String.format("%s&7"+ PostPostion.postpostion(getItemDisplay(ingredient),2) +" %d개 부족합니다", getItemDisplay(ingredient), removeIngredientAmount - removeAmount);
                 if (removeAmount == 0) {
                     RecipePlugin.msg(player, errorMsg);
                     rollback = true;
@@ -92,7 +96,7 @@ public final class Recipe {
                 if (!rollbackItemList.isEmpty()) {
                     for (ItemStack item : rollbackItemList) {
                         this.giveItem(playerPersistent, player, item, false);
-                        RecipePlugin.msg(player, String.format("%s&7" + PostPostion.postpostion(UtilMethod.getItemDisplay(item),2) +" %d개 반환되었습니다", UtilMethod.getItemDisplay(item), item.getAmount()));
+                        RecipePlugin.msg(player, String.format("%s&7" + PostPostion.postpostion(getItemDisplay(item),2) +" %d개 반환되었습니다", getItemDisplay(item), item.getAmount()));
                     }
                 }
                 return false;
@@ -137,6 +141,9 @@ public final class Recipe {
 
     public String getRecipeName() {
         return this.recipeName;
+    }
+    public String getResultName() {
+        return this.resultName;
     }
 
     public int getMakeTime() {

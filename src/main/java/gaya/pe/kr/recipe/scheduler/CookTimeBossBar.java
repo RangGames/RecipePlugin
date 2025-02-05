@@ -48,16 +48,21 @@ Listener {
     Date date = new Date();
 
     public CookTimeBossBar(UUID uuid, Recipe recipe, String bossBarTitle, int amount, int nowMakeItemAmount, int time, int makeTime) {
+        this(uuid, recipe, bossBarTitle, amount, nowMakeItemAmount, time, makeTime, -1);
+    }
+    public CookTimeBossBar(UUID uuid, Recipe recipe, String bossBarTitle, int amount, int nowMakeItemAmount, int time, int makeTime, int maxCount) {
         this.uuid = uuid;
         this.recipe = recipe;
         this.bossBar = Bukkit.createBossBar((String)bossBarTitle, (BarColor)BarColor.GREEN, (BarStyle)BarStyle.SOLID, (BarFlag[])new BarFlag[0]);
         this.bossBar.setProgress(0.0);
         this.bossBarTitle = bossBarTitle;
         this.amount = amount;
-
-        PlayerPersistent playerPersistent = PlayerCauldronManager.getInstance().getPlayerCauldron(player);
-        this.maxCraftable = recipe.getMaxCraftable(playerPersistent);
-
+        if (maxCount == -1) {
+            PlayerPersistent playerPersistent = PlayerCauldronManager.getInstance().getPlayerCauldron(uuid);
+            this.maxCraftable = Math.min(recipe.getMaxCraftable(playerPersistent), amount);
+        } else {
+            this.maxCraftable = maxCount;
+        }
         this.nowMakeItemAmount = nowMakeItemAmount;
         this.time = time;
         this.makeTime = makeTime;
@@ -76,7 +81,7 @@ Listener {
         this.amount = amount;
 
         PlayerPersistent playerPersistent = PlayerCauldronManager.getInstance().getPlayerCauldron(player);
-        this.maxCraftable = recipe.getMaxCraftable(playerPersistent);
+        this.maxCraftable = Math.min(recipe.getMaxCraftable(playerPersistent), amount);
 
         this.makeTime = recipe.getMakeTime();
         ItemStack headItem = PlayerCauldronManager.getInstance().getPlayerCauldron(player).getCookEquipment();
@@ -115,7 +120,7 @@ Listener {
             progress = 1.0;
         }
         this.bossBar.setProgress(progress);
-        this.bossBar.setTitle(this.bossBarTitle.replace("%time%", Integer.toString(this.makeTime - this.time)).replace("%recipe_name%", this.recipe.getRecipeName()).replace("%remain_amount%", Integer.toString(this.amount - this.nowMakeItemAmount)).replace("%now_amount%", Integer.toString( this.nowMakeItemAmount)).replace("%max_amount%", Integer.toString(this.getMaxAmount())));
+        this.bossBar.setTitle(this.bossBarTitle.replace("%time%", Integer.toString(this.makeTime - this.time)).replace("%result_name%", this.recipe.getResultName()).replace("%recipe_name%", this.recipe.getRecipeName()).replace("%remain_amount%", Integer.toString(this.amount - this.nowMakeItemAmount)).replace("%now_amount%", Integer.toString( this.nowMakeItemAmount)).replace("%max_amount%", Integer.toString(this.getMaxAmount())));
         if (this.time < this.makeTime) {
             ++this.time;
         } else {

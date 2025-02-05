@@ -338,6 +338,7 @@ public class RecipeAPI {
                 cookData.put("start_date", startDate != null ? startDate.getTime() : null);
                 cookData.put("time", cookTimeBossBar.getTime());
                 cookData.put("makeTime", cookTimeBossBar.getMakeTime());
+                cookData.s("maxCount", cookTimeBossBar.getMaxAmount());
                 cookData.put("recipeName", cookTimeBossBar.getRecipe().getRecipeName());
                 cookData.put("nowMakeAmount", cookTimeBossBar.getNowMakeItemAmount());
                 cookData.put("amount", cookTimeBossBar.getAmount());
@@ -409,7 +410,7 @@ public class RecipeAPI {
             CookTimeBossBar currentCook = CookManager.getInstance().getCook(uuid);
             if (currentCook != null) {
                 currentCook.interrupt();
-            }
+            } // Server Offline 상태에서 요리 제작 시 아이템 들어갈 수 있음 확인.
 
             String recipeName = (String) cookData.get("recipeName");
             Recipe recipe = RecipeServiceManager.getInstance().getRecipeContainer().getRecipe(recipeName);
@@ -420,6 +421,9 @@ public class RecipeAPI {
                 int amount = ((Long) cookData.get("amount")).intValue();
                 int nowMakeAmount = ((Long) cookData.get("nowMakeAmount")).intValue();
 
+                Long maxCountLong = (Long) cookData.get("maxCount"); // 서버 적용 시 이전 사람들 적용 불가 현상 해결
+                int maxCount = (maxCountLong != null) ? maxCountLong.intValue() : -1;
+
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
                         CookTimeBossBar newCook = new CookTimeBossBar(
@@ -429,7 +433,8 @@ public class RecipeAPI {
                                 amount,
                                 nowMakeAmount,
                                 time,
-                                makeTime
+                                makeTime,
+                                maxCount
                         );
                         newCook.start();
                     } catch (Exception e) {
