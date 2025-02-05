@@ -596,23 +596,36 @@ public class RecipeAPI {
             plugin.getLogger().warning("Failed to apply cooking status for " + uuid + ": " + e.getMessage());
         }
     }
+    private boolean isRecipeServer(String serverName) {
+        return serverName.equals("lobby") ||
+                serverName.equals("island") ||
+                serverName.equals("rpg") ||
+                serverName.equals("collect");
+    }
     public CompletableFuture<Boolean> handleServerTransfer(UUID uuid, String targetServer) {
+
         return CompletableFuture.supplyAsync(() -> {
             if (!acquireDataLock(uuid, targetServer)) {
                 throw new IllegalStateException("Unable to acquire data lock for player transfer");
             }
 
             try {
-                if (!setPlayerTransferring(uuid, true)) {
-                    releaseDataLock(uuid);
-                    throw new IllegalStateException("Player is already being transferred");
+                boolean isRecipeServer = targetServer.equals("lobby") ||
+                        targetServer.equals("island") ||
+                        targetServer.equals("rpg") ||
+                        targetServer.equals("collect");
+
+                if (isRecipeServer) {
+                    if (!setPlayerTransferring(uuid, true)) {
+                        releaseDataLock(uuid);
+                        throw new IllegalStateException("Player is already being transferred");
+                    }
+
+                    DataVersion newVersion = new DataVersion(uuid, targetServer);
+                    dataVersions.put(uuid, newVersion);
                 }
 
-                DataVersion newVersion = new DataVersion(uuid, targetServer);
-                dataVersions.put(uuid, newVersion);
-
                 savePlayerData(uuid, targetServer);
-
                 updateServerHistory(uuid, getCurrentServer(), targetServer);
 
                 return true;
