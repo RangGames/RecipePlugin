@@ -483,7 +483,7 @@ public class RecipeAPI {
                 stmt.setString(8, cookInfo);
                 stmt.setString(9, invInfo);
                 stmt.setLong(10, updateTime);
-                boolean isRecipeServer = serverName.equals("lobby") || serverName.equals("island");
+                boolean isRecipeServer = serverName.equals("lobby") || serverName.equals("island") || serverName.equals("rpg") || serverName.equals("collect");
                 stmt.setBoolean(11, isRecipeServer);
 
                 stmt.executeUpdate();
@@ -533,6 +533,15 @@ public class RecipeAPI {
                     return null;
                 });
     }
+    private int getNowCount(String uuid) {
+        UUID playerUUID = UUID.fromString(uuid);
+        return CookManager.getInstance().getCook(playerUUID).getNowMakeItemAmount();
+    }
+    private int getAllCount(String uuid) {
+        UUID playerUUID = UUID.fromString(uuid);
+        return CookManager.getInstance().getCook(playerUUID).getNowMakeItemAmount();
+    }
+
     private void savePlayerDataSync(UUID uuid, String serverName) {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
@@ -580,11 +589,6 @@ public class RecipeAPI {
         }
     }
 
-    /**
-     * ItemStack 배열을 받아서 각 아이템의 Material과 수량을 문자열로 변환합니다.
-     * @param items 변환할 ItemStack 배열
-     * @return 각 아이템의 정보를 담은 문자열 리스트
-     */
     private static List<String> convertItemStacksToString(ItemStack[] items) {
         List<String> result = new ArrayList<>();
 
@@ -605,11 +609,6 @@ public class RecipeAPI {
         return result;
     }
 
-    /**
-     * ItemStack 배열을 받아서 모든 아이템 정보를 하나의 문자열로 변환합니다.
-     * @param items 변환할 ItemStack 배열
-     * @return 전체 아이템 정보를 담은 하나의 문자열
-     */
     private static String convertItemStacksToSingleString(ItemStack[] items) {
         List<String> itemList = convertItemStacksToString(items);
         return String.join(", ", itemList);

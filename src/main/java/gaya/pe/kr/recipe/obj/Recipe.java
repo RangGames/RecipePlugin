@@ -2,6 +2,7 @@ package gaya.pe.kr.recipe.obj;
 
 import gaya.pe.kr.core.RecipePlugin;
 import gaya.pe.kr.core.util.SchedulerUtil;
+import gaya.pe.kr.core.util.filter.Filter;
 import gaya.pe.kr.core.util.method.UtilMethod;
 import gaya.pe.kr.player.data.PlayerPersistent;
 import gaya.pe.kr.recipe.exception.InsufficientRecipeDataException;
@@ -36,6 +37,24 @@ public final class Recipe {
         this.ingredient = recipeBuilder.ingredient;
         this.sortOrder = recipeBuilder.sortOrder;
         RecipeServiceManager.getInstance().getRecipeContainer().addRecipe(this);
+    }
+
+    public int getMaxCraftable(PlayerPersistent playerPersistent) {
+        List<ItemStack> inventoryItems = new ArrayList<>();
+        for (ItemStack item : playerPersistent.getItemStacks()) {
+            if (item != null && !item.getType().isAir()) {
+                inventoryItems.add(item);
+            }
+        }
+        List<ItemStack> ingredients = this.getIngredient().getIngredientList();
+        int maxCraftable = Integer.MAX_VALUE;
+        for (ItemStack ingredient : ingredients) {
+            int requiredAmount = ingredient.getAmount();
+            int availableAmount = Filter.getPlayerItemCount(inventoryItems, ingredient);
+            int craftableForIngredient = availableAmount / requiredAmount;
+            maxCraftable = Math.min(maxCraftable, craftableForIngredient);
+        }
+        return maxCraftable == Integer.MAX_VALUE ? 0 : maxCraftable;
     }
 
     public boolean makeItem(UUID uuid, PlayerPersistent playerPersistent, List<ItemStack> itemStackList, int amount) {

@@ -2,6 +2,7 @@ package gaya.pe.kr.core.util.filter;
 
 import gaya.pe.kr.core.util.method.UtilMethod;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 import org.bukkit.Material;
@@ -42,6 +43,18 @@ public class Filter {
         return (double)random.nextInt(100 * multiply) < probability * (double)multiply;
     }
 
+    public static int getPlayerItemCount(List<ItemStack> playerItemList, ItemStack ingredient) {
+        int count = 0;
+        for (ItemStack item : playerItemList) {
+            if (item == null || item.getType().isAir()) {
+                continue;
+            }
+            if (isMatchItem(item, ingredient)) {
+                count += item.getAmount();
+            }
+        }
+        return count;
+    }
     public static boolean isMatchItem(ItemStack itemStack, ItemStack targetItem) {
         Material targetItemMaterial;
         Material material;
