@@ -79,6 +79,17 @@ public class RecipeAPI {
     public RecipeAPI(RecipePlugin plugin) {
         this.plugin = plugin;
         setupDatabase();
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                handleNetworkJoin(player.getUniqueId())
+                        .exceptionally(throwable -> {
+                            plugin.getLogger().severe("Failed to load data for player " + player.getName() + ": " + throwable.getMessage());
+                            return false;
+                        });
+            }
+        }, 20L);
+
         initializeScheduledTasks();
     }
     public boolean isDataLoading(UUID uuid) {

@@ -6,7 +6,7 @@
 
     <groupId>rang.games</groupId>
     <artifactId>RecipePlugin</artifactId>
-    <version>1.1.5-SNAPSHOT</version>
+    <version>1.1.5.1-SNAPSHOT</version>
 
     <properties>
         <java.version>21</java.version>
