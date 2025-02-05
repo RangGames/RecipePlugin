@@ -1,6 +1,8 @@
 package gaya.pe.kr.recipe.conversation;
 
 import gaya.pe.kr.core.RecipePlugin;
+import gaya.pe.kr.player.data.PlayerPersistent;
+import gaya.pe.kr.player.manager.PlayerCauldronManager;
 import gaya.pe.kr.recipe.manager.RecipeServiceManager;
 import gaya.pe.kr.recipe.obj.Recipe;
 import gaya.pe.kr.recipe.scheduler.CookTimeBossBar;
@@ -30,7 +32,18 @@ extends StringPrompt {
             Player player = (Player)context.getForWhom();
             try {
                 int amount = Integer.parseInt(input);
-                if (amount > 0) {
+                if (amount == -1) {
+                    PlayerPersistent playerPersistent = PlayerCauldronManager.getInstance().getPlayerCauldron(player);
+                    int maxcraft = this.recipe.getMaxCraftable(playerPersistent);
+                    if (maxcraft == 0) {
+                        player.sendRawMessage(String.format("%s §c아이템이 부족합니다. [/요리 재료] 에 아이템을 넣어주세요.", RecipePlugin.getPREFIX(), this.recipe.getRecipeName()));
+
+                    } else {
+                        player.sendRawMessage(String.format("%s §a%s: %d개가 입력되었습니다.", RecipePlugin.getPREFIX(), this.recipe.getRecipeName(), maxcraft));
+                        CookTimeBossBar cookTimeBossBar = new CookTimeBossBar(player, this.recipe, maxcraft, RecipeServiceManager.getInstance().getBossBarTitle());
+                        cookTimeBossBar.start();
+                    }
+                } else if (amount > 0) {
                     if (amount < 10000) {
                         player.sendRawMessage(String.format("%s §a%s %d개가 입력되었습니다.", RecipePlugin.getPREFIX(), this.recipe.getRecipeName(), amount));
                         CookTimeBossBar cookTimeBossBar = new CookTimeBossBar(player, this.recipe, amount, RecipeServiceManager.getInstance().getBossBarTitle());

@@ -43,7 +43,7 @@ Listener {
     int nowMakeItemAmount = 0;
     int time = 0;
     int makeTime;
-    int maxCraftable;
+    int maxCraftable = 0;
     Player player;
     Date date = new Date();
 

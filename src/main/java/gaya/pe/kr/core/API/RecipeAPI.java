@@ -338,7 +338,8 @@ public class RecipeAPI {
                 cookData.put("start_date", startDate != null ? startDate.getTime() : null);
                 cookData.put("time", cookTimeBossBar.getTime());
                 cookData.put("makeTime", cookTimeBossBar.getMakeTime());
-                cookData.s("maxCount", cookTimeBossBar.getMaxAmount());
+                Integer maxAmount = cookTimeBossBar.getMaxAmount();
+                cookData.put("maxCount", maxAmount != null ? maxAmount : null);
                 cookData.put("recipeName", cookTimeBossBar.getRecipe().getRecipeName());
                 cookData.put("nowMakeAmount", cookTimeBossBar.getNowMakeItemAmount());
                 cookData.put("amount", cookTimeBossBar.getAmount());

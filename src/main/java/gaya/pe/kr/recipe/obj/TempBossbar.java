@@ -10,11 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 public class TempBossbar {
-
     public TempBossbar(Player p, String text) {
         BossBar bossBar = Bukkit.createBossBar(text, BarColor.WHITE, BarStyle.SOLID);
         bossBar.addPlayer(p);
         SchedulerUtil.runTaskLater((Runnable) () -> bossBar.removeAll(), 60);
-
     }
 }
