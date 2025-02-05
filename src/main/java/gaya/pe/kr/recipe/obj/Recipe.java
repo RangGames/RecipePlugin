@@ -149,6 +149,7 @@ public final class Recipe {
     public int getMakeTime() {
         return this.makeTime;
     }
+
     public int getSortOrder() {
         return this.sortOrder;
     }
