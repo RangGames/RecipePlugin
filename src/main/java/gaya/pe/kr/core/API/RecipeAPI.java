@@ -537,9 +537,9 @@ public class RecipeAPI {
         UUID playerUUID = UUID.fromString(uuid);
         return CookManager.getInstance().getCook(playerUUID).getNowMakeItemAmount();
     }
-    private int getAllCount(String uuid) {
+    private int getMaxCount(String uuid) {
         UUID playerUUID = UUID.fromString(uuid);
-        return CookManager.getInstance().getCook(playerUUID).getNowMakeItemAmount();
+        return CookManager.getInstance().getCook(playerUUID).getMaxAmount();
     }
 
     private void savePlayerDataSync(UUID uuid, String serverName) {
