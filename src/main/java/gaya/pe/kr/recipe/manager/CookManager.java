@@ -38,7 +38,7 @@ public class CookManager {
         }
     }
     public void init() {
-        this.configurationManager = ConfigurationManager.getInstance();
+/*        this.configurationManager = ConfigurationManager.getInstance();
         this.configuration = this.configurationManager.getConfiguration("data/cook.yml", "data/cook.yml");
         RecipeServiceManager recipeServiceManager = RecipeServiceManager.getInstance();
         RecipeContainer recipeContainer = recipeServiceManager.getRecipeContainer();
@@ -56,11 +56,11 @@ public class CookManager {
                 CookTimeBossBar cookTimeBossBar = new CookTimeBossBar(UUID.fromString(uuid), recipe, RecipeServiceManager.getInstance().getBossBarTitle(), amount, nowMakeAmount, time, makeTime);
                 cookTimeBossBar.start();
             }
-        }
+        }*/
     }
 
     public void saveData() {
-        this.configuration.set("data", null);
+/*        this.configuration.set("data", null);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
         this.cookTimeBossBarHashMap.forEach((uuid, cookTimeBossBar) -> {
             String path = "data." + uuid.toString();
@@ -78,7 +78,7 @@ public class CookManager {
             this.configuration.set(path + ".nowMakeAmount", (Object)nowMakeAmount);
             this.configuration.set(path + ".amount", (Object)amount);
         });
-        this.configurationManager.saveConfiguration(this.configuration, "data/cook.yml");
+        this.configurationManager.saveConfiguration(this.configuration, "data/cook.yml");*/
     }
 
     public void addCook(UUID uuid, CookTimeBossBar cookTimeBossBar) {

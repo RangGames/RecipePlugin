@@ -10,7 +10,7 @@ implements Runnable {
     @Override
     public void run() {
         RecipeServiceManager.getInstance().saveData();
-        CookManager.getInstance().saveData();
+        //CookManager.getInstance().saveData();
         /*for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
             if (!onlinePlayer.isOp()) continue;
             onlinePlayer.sendMessage("자동으로 요리 데이터가 저장되었습니다");

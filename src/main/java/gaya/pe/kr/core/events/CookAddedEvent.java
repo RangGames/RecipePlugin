@@ -34,9 +34,8 @@ public class CookAddedEvent extends Event {
     public static HandlerList getHandlerList() {
         return handlers;
     }
-
     @Override
-    public @NotNull HandlerList getHandlers() {
-        return null;
+    public HandlerList getHandlers() {
+        return handlers;
     }
 }

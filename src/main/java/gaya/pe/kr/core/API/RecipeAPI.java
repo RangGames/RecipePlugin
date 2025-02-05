@@ -7,6 +7,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import gaya.pe.kr.core.RecipePlugin;
 import gaya.pe.kr.core.events.CookLoadingEvent;
 import gaya.pe.kr.core.events.CookSavedEvent;
+import gaya.pe.kr.core.util.DataVersion;
+import gaya.pe.kr.core.util.PlayerDataLock;
 import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.player.data.PlayerPersistent;
 import gaya.pe.kr.player.manager.PlayerCauldronManager;
@@ -15,6 +17,7 @@ import gaya.pe.kr.recipe.manager.RecipeServiceManager;
 import gaya.pe.kr.recipe.obj.Recipe;
 import gaya.pe.kr.recipe.scheduler.CookTimeBossBar;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
@@ -26,9 +29,11 @@ import java.io.ByteArrayOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -38,6 +43,11 @@ public class RecipeAPI {
     private final Map<UUID, PlayerTransferData> transferData = new ConcurrentHashMap<>();
     private static final String LAST_SERVER_KEY = "last_server";
     private static final int DATA_LOAD_TIMEOUT = 5000;
+    private final Map<UUID, PlayerDataLock> dataLocks = new ConcurrentHashMap<>();
+    private final Map<UUID, DataVersion> dataVersions = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> retryCount = new ConcurrentHashMap<>();
+    private static final int MAX_RETRY_COUNT = 3;
+    private static final int LOCK_TIMEOUT_SECONDS = 30;
     private static final Gson GSON = new GsonBuilder()
             .disableHtmlEscaping()
             .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -69,11 +79,78 @@ public class RecipeAPI {
     public RecipeAPI(RecipePlugin plugin) {
         this.plugin = plugin;
         setupDatabase();
-        startAutoSave();
+        initializeScheduledTasks();
     }
     public boolean isDataLoading(UUID uuid) {
         PlayerTransferData data = transferData.get(uuid);
         return data != null && data.transferring || CookManager.getInstance().isLoading(uuid);
+    }
+    private boolean acquireDataLock(UUID uuid, String server) {
+        if (dataLocks.containsKey(uuid)) {
+            PlayerDataLock existingLock = dataLocks.get(uuid);
+            if (!existingLock.isExpired()) {
+                return false;
+            }
+            dataLocks.remove(uuid);
+        }
+
+        dataLocks.put(uuid, new PlayerDataLock(uuid, server, LOCK_TIMEOUT_SECONDS));
+        return true;
+    }
+    private void releaseDataLock(UUID uuid) {
+        dataLocks.remove(uuid);
+    }
+    private void handleTimeout(UUID uuid) {
+        try {
+            PlayerTransferData data = transferData.get(uuid);
+            if (data != null) {
+                data.transferring = false;
+                data.future.complete(false);
+            }
+            releaseDataLock(uuid);
+            setPlayerTransferring(uuid, false);
+            retryCount.remove(uuid);
+
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error handling timeout for " + uuid + ": " + e.getMessage());
+        }
+    }
+    private void recoverFromFailure(UUID uuid) {
+        try {
+            try (Connection conn = dataSource.getConnection()) {
+                conn.setAutoCommit(false);
+
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT last_server, transfer_status FROM recipe_data WHERE uuid = ? FOR UPDATE")) {
+                    stmt.setString(1, uuid.toString());
+                    ResultSet rs = stmt.executeQuery();
+
+                    if (rs.next()) {
+                        String lastServer = rs.getString("last_server");
+                        boolean transferStatus = rs.getBoolean("transfer_status");
+
+                        try (PreparedStatement updateStmt = conn.prepareStatement(
+                                "UPDATE recipe_data SET transfer_status = false, server_name = ? WHERE uuid = ?")) {
+                            updateStmt.setString(1, lastServer);
+                            updateStmt.setString(2, uuid.toString());
+                            updateStmt.executeUpdate();
+                        }
+                    }
+
+                    conn.commit();
+                }
+            }
+
+            PlayerTransferData data = transferData.remove(uuid);
+            if (data != null) {
+                data.future.complete(false);
+            }
+
+            releaseDataLock(uuid);
+
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error recovering from failure for " + uuid + ": " + e.getMessage());
+        }
     }
 
     private void setupDatabase() {
@@ -159,18 +236,29 @@ public class RecipeAPI {
         }
     }
 
-    public void setPlayerTransferring(UUID uuid, boolean transferring) {
-        if (transferring) {
-            PlayerTransferData data = new PlayerTransferData();
-            transferData.put(uuid, data);
-        } else {
-            handleTransferFailure(uuid);
+    public boolean setPlayerTransferring(UUID uuid, boolean transferring) {
+        try {
+            if (transferring) {
+                PlayerTransferData existingData = transferData.get(uuid);
+                if (existingData != null && existingData.transferring) {
+                    plugin.getLogger().warning("Player " + uuid + " is already being transferred");
+                    return false;
+                }
+                transferData.put(uuid, new PlayerTransferData());
+                return true;
+            } else {
+                handleTransferFailure(uuid);
+                return true;
+            }
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to set player transferring status: " + e.getMessage());
+            return false;
         }
     }
     public void handlePlayerQuit(UUID uuid) {
         try (Connection conn = dataSource.getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(
-                    "SELECT transfer_status, last_server FROM recipe_data WHERE uuid = ?")) {
+                    "SELECT transfer_status, last_server FROM recipe_data WHERE uuid = ? FOR UPDATE")) {
                 stmt.setString(1, uuid.toString());
                 ResultSet rs = stmt.executeQuery();
 
@@ -178,15 +266,61 @@ public class RecipeAPI {
                     String lastServer = rs.getString("last_server");
 
                     try (PreparedStatement updateStmt = conn.prepareStatement(
-                            "UPDATE recipe_data SET transfer_status = false, server_name = ? WHERE uuid = ?")) {
-                        updateStmt.setString(1, lastServer);
-                        updateStmt.setString(2, uuid.toString());
+                            "UPDATE recipe_data SET transfer_status = false WHERE uuid = ?")) {
+                        updateStmt.setString(1, uuid.toString());
                         updateStmt.executeUpdate();
                     }
+                    return;
                 }
             }
+
+            forceSaveOnQuit(uuid);
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to handle player quit: " + e.getMessage());
+        }
+    }
+    private void updatePlayerData(UUID uuid, String targetServer, boolean isTransferring) {
+        try (Connection conn = dataSource.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+
+                String cookInfo = getPlayerCookInformation(uuid);
+                String invInfo = getPlayerInventoryInformation(uuid);
+                long updateTime = System.currentTimeMillis();
+
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "UPDATE recipe_data SET cook_info = ?, inventory_info = ?, " +
+                                "last_update = ? WHERE uuid = ?")) {
+                    stmt.setString(1, cookInfo);
+                    stmt.setString(2, invInfo);
+                    stmt.setLong(3, updateTime);
+                    stmt.setString(4, uuid.toString());
+                    stmt.executeUpdate();
+
+                    conn.commit();
+
+                    CookSavedEvent cookSavedEvent = new CookSavedEvent(uuid, cookInfo, invInfo);
+                    Bukkit.getPluginManager().callEvent(cookSavedEvent);
+
+                    PlayerTransferData data = transferData.get(uuid);
+                    if (data != null) {
+                        data.saved = true;
+                    }
+                } catch (SQLException e) {
+                    conn.rollback();
+                    plugin.getLogger().severe("Failed to execute update query: " + e.getMessage());
+                    throw e;
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Database error during player data update: " + e.getMessage());
+                throw e;
+            } catch (Exception e) {
+                plugin.getLogger().severe("Unexpected error during player data update: " + e.getMessage());
+                throw new RuntimeException("Failed to update player data", e);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("Failed to establish database connection: " + e.getMessage());
+            throw new RuntimeException("Database connection failed", e);
         }
     }
     private void handleTransferFailure(UUID uuid) {
@@ -269,16 +403,9 @@ public class RecipeAPI {
             }
         });
     }
-    private void startAutoSave() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            for (UUID uuid : PlayerCauldronManager.getInstance().getActivePlayers()) {
-                PlayerTransferData data = transferData.get(uuid);
-                if (data == null || !data.transferring) {
-                    savePlayerData(uuid, plugin.getConfig().getString("server-name", "unknown"));
-                }
-            }
-        }, 6000L, 6000L);
-    }
+    private void initializeScheduledTasks() {
+        startAutoSave();
+        }
 
     public void savePlayerData(UUID uuid, String serverName) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -374,36 +501,44 @@ public class RecipeAPI {
             return "{}";
         }
     }
-
     private boolean applyPlayerData(UUID uuid, String cookInfo, String invInfo) {
         try {
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    if (invInfo != null && !invInfo.equals("{}")) {
+                        JSONObject invData = (JSONObject) new JSONParser().parse(invInfo);
+                        PlayerPersistent persistent = PlayerCauldronManager.getInstance().getPlayerCauldron(uuid);
 
-            if (invInfo != null && !invInfo.equals("{}")) {
-                JSONObject invData = (JSONObject) new JSONParser().parse(invInfo);
-                PlayerPersistent persistent = PlayerCauldronManager.getInstance().getPlayerCauldron(uuid);
+                        if (invData.containsKey("cauldron")) {
+                            persistent.setItemStacks((ItemStack[]) ObjectConverter.getObject((String) invData.get("cauldron")));
+                        }
+                        if (invData.containsKey("virtual_inventory")) {
+                            persistent.setVirtualInventory((ItemStack[]) ObjectConverter.getObject((String) invData.get("virtual_inventory")));
+                        }
+                        if (invData.containsKey("cook_equipment")) {
+                            persistent.setCookEquipment((ItemStack) ObjectConverter.getObject((String) invData.get("cook_equipment")));
+                        } else {
+                            persistent.setCookEquipment(null);
+                        }
+                    }
 
-                if (invData.containsKey("cauldron")) {
-                    persistent.setItemStacks((ItemStack[]) ObjectConverter.getObject((String) invData.get("cauldron")));
-                }
-                if (invData.containsKey("virtual_inventory")) {
-                    persistent.setVirtualInventory((ItemStack[]) ObjectConverter.getObject((String) invData.get("virtual_inventory")));
-                }
-                if (invData.containsKey("cook_equipment")) {
-                    persistent.setCookEquipment((ItemStack) ObjectConverter.getObject((String) invData.get("cook_equipment")));
-                } else {
-                    persistent.setCookEquipment(null);
-                }
-            }
+                    if (cookInfo != null && !cookInfo.equals("{}")) {
+                        JSONObject cookData = (JSONObject) new JSONParser().parse(cookInfo);
+                        if (cookData.containsKey("recipeName")) {
+                            applyCookingStatus(uuid, cookData);
+                        }
+                    }
 
-            if (cookInfo != null && !cookInfo.equals("{}")) {
-                JSONObject cookData = (JSONObject) new JSONParser().parse(cookInfo);
-                if (cookData.containsKey("recipeName")) {
-                    applyCookingStatus(uuid, cookData);
+                    CookLoadingEvent cookLoadingEvent = new CookLoadingEvent(uuid, cookInfo, invInfo);
+                    Bukkit.getPluginManager().callEvent(cookLoadingEvent);
+                    future.complete(true);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to apply player data: " + e.getMessage());
+                    future.complete(false);
                 }
-            }
-            CookLoadingEvent cookLoadingEvent = new CookLoadingEvent(uuid, cookInfo, invInfo);
-            Bukkit.getPluginManager().callEvent(cookLoadingEvent);
-            return true;
+            });
+            return future.get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to apply player data: " + e.getMessage());
             return false;
@@ -425,7 +560,6 @@ public class RecipeAPI {
                 int time = ((Long) cookData.get("time")).intValue();
                 int amount = ((Long) cookData.get("amount")).intValue();
                 int nowMakeAmount = ((Long) cookData.get("nowMakeAmount")).intValue();
-
                 Long maxCountLong = (Long) cookData.get("maxCount"); // 서버 적용 시 이전 사람들 적용 불가 현상 해결
                 int maxCount = (maxCountLong != null) ? maxCountLong.intValue() : -1;
 
@@ -451,24 +585,164 @@ public class RecipeAPI {
             plugin.getLogger().warning("Failed to apply cooking status for " + uuid + ": " + e.getMessage());
         }
     }
-    public void handleServerTransfer(UUID uuid, String targetServer) {
-        Object lock = transferLocks.computeIfAbsent(uuid, k -> new Object());
-        synchronized (lock) {
+    public CompletableFuture<Boolean> handleServerTransfer(UUID uuid, String targetServer) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (!acquireDataLock(uuid, targetServer)) {
+                throw new IllegalStateException("Unable to acquire data lock for player transfer");
+            }
+
             try {
-                String currentServer = plugin.getConfig().getString("server-name", "unknown");
-                updateServerHistory(uuid, currentServer, targetServer);
+                if (!setPlayerTransferring(uuid, true)) {
+                    releaseDataLock(uuid);
+                    throw new IllegalStateException("Player is already being transferred");
+                }
 
-                String cookInfo = getPlayerCookInformation(uuid);
-                String invInfo = getPlayerInventoryInformation(uuid);
+                DataVersion newVersion = new DataVersion(uuid, targetServer);
+                dataVersions.put(uuid, newVersion);
 
-                CookManager.getInstance().cleanupPlayer(uuid);
-                savePlayerDataWithInfo(uuid, targetServer, cookInfo, invInfo);
+                savePlayerData(uuid, targetServer);
+
+                updateServerHistory(uuid, getCurrentServer(), targetServer);
+
+                return true;
+            } catch (Exception e) {
+                handleTransferFailure(uuid);
+                throw e;
             } finally {
-                transferLocks.remove(uuid);
+                releaseDataLock(uuid);
+            }
+        }, asyncExecutor);
+    }
+    public boolean isPlayerTransferring(UUID uuid) {
+        PlayerTransferData data = transferData.get(uuid);
+        return data != null && data.transferring;
+    }
+    public CompletableFuture<Boolean> handleNetworkQuit(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (!acquireDataLock(uuid, "QUIT")) {
+                throw new IllegalStateException("Unable to acquire data lock for player quit");
+            }
+
+            try {
+                if (isPlayerTransferring(uuid)) {
+                    handleTransferCancellation(uuid);
+                }
+
+                forceSaveOnQuit(uuid);
+                handlePlayerQuit(uuid);
+
+                return true;
+            } catch (Exception e) {
+                plugin.getLogger().severe("Failed to handle network quit: " + e);
+                recoverFromFailure(uuid);
+                throw e;
+            } finally {
+                releaseDataLock(uuid);
+            }
+        }, asyncExecutor);
+    }
+    public CompletableFuture<Boolean> handleNetworkJoin(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (!acquireDataLock(uuid, getCurrentServer())) {
+                throw new IllegalStateException("Unable to acquire data lock for player join");
+            }
+
+            try {
+                if (isPlayerTransferring(uuid)) {
+                    waitForPreviousTransfer(uuid);
+                }
+
+                boolean loaded = loadPlayerData(uuid).get(5, TimeUnit.SECONDS);
+                if (loaded) {
+                    setPlayerTransferring(uuid, false);
+                    forceDataSyncOnJoin(uuid);
+                    String cookInfo = getPlayerCookInformation(uuid);
+                    String invInfo = getPlayerInventoryInformation(uuid);
+                    CookLoadingEvent cookLoadingEvent = new CookLoadingEvent(uuid, cookInfo, invInfo);
+                    Bukkit.getPluginManager().callEvent(cookLoadingEvent);
+                    return true;
+                }
+                return false;
+
+            } catch (Exception e) {
+                plugin.getLogger().severe("Failed to handle network join: " + e);
+                recoverFromFailure(uuid);
+                throw new CompletionException(e);
+            } finally {
+                releaseDataLock(uuid);
+            }
+        }, asyncExecutor);
+    }
+    private void waitForPreviousTransfer(UUID uuid) throws InterruptedException, TimeoutException, ExecutionException {
+        PlayerTransferData data = transferData.get(uuid);
+        if (data != null && data.transferring) {
+            boolean completed = data.future.get(5, TimeUnit.SECONDS);
+            if (!completed) {
+                throw new TimeoutException("Timeout waiting for previous transfer");
             }
         }
     }
+    private void handleTransferCancellation(UUID uuid) {
+        try {
+            PlayerTransferData data = transferData.get(uuid);
+            if (data != null) {
+                data.transferring = false;
+                data.future.complete(false);
+            }
 
+            try (Connection conn = dataSource.getConnection()) {
+                conn.setAutoCommit(false);
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "UPDATE recipe_data SET transfer_status = false WHERE uuid = ?")) {
+                    stmt.setString(1, uuid.toString());
+                    stmt.executeUpdate();
+                    conn.commit();
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to cancel transfer: " + e.getMessage());
+        }
+    }
+    private void handleRetry(UUID uuid, Runnable action) {
+        int currentRetry = retryCount.getOrDefault(uuid, 0);
+        if (currentRetry < MAX_RETRY_COUNT) {
+            retryCount.put(uuid, currentRetry + 1);
+            Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+                try {
+                    action.run();
+                } catch (Exception e) {
+                    plugin.getLogger().severe("Retry failed for " + uuid + ": " + e.getMessage());
+                }
+            }, 20L * (currentRetry + 1));
+        } else {
+            plugin.getLogger().severe("Max retry count reached for " + uuid);
+            recoverFromFailure(uuid);
+        }
+    }
+    private String getCurrentServer() {
+        return plugin.getConfig().getString("server-name", "unknown");
+    }
+    public CompletableFuture<Boolean> verifyTransfer(UUID uuid, String targetServer) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection conn = dataSource.getConnection()) {
+                PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT transfer_status, server_name FROM recipe_data WHERE uuid = ?");
+                stmt.setString(1, uuid.toString());
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    boolean transferStatus = rs.getBoolean("transfer_status");
+                    String currentServer = rs.getString("server_name");
+
+                    return !transferStatus && currentServer.equals(plugin.getConfig().getString("server-name"));
+                }
+                return true;
+            } catch (Exception e) {
+                plugin.getLogger().severe("Transfer verification failed: " + e.getMessage());
+                return false;
+            }
+        });
+    }
     private void savePlayerDataWithInfo(UUID uuid, String serverName, String cookInfo, String invInfo) {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
@@ -527,6 +801,7 @@ public class RecipeAPI {
         String currentServer = plugin.getConfig().getString("server-name", "lobby");
         savePlayerDataSync(uuid, currentServer);
     }
+
     public void forceSaveOnQuit(UUID uuid) {
         String serverName = plugin.getConfig().getString("server-name", "lobby");
         transferData.remove(uuid);
@@ -600,6 +875,35 @@ public class RecipeAPI {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
         }
+    }
+    private void startAutoSave() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            Set<UUID> onlinePlayers = new HashSet<>();
+
+            for (UUID uuid : PlayerCauldronManager.getInstance().getActivePlayers()) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player != null && player.isOnline()) {
+                    onlinePlayers.add(uuid);
+                }
+            }
+
+            Set<UUID> playersToSave = onlinePlayers.stream()
+                    .filter(uuid -> {
+                        PlayerTransferData data = transferData.get(uuid);
+                        return data == null || !data.transferring;
+                    })
+                    .collect(Collectors.toSet());
+
+            if (!playersToSave.isEmpty()) {
+                bulkSavePlayers(playersToSave);
+
+                if (plugin.getConfig().getBoolean("debug", false)) {
+                    plugin.getLogger().info(String.format(
+                            "Auto-saved data for %d players", playersToSave.size()
+                    ));
+                }
+            }
+        }, 6000L, 6000L);
     }
 
     private static List<String> convertItemStacksToString(ItemStack[] items) {

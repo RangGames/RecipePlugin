@@ -22,7 +22,7 @@ public class PlayerCauldronManager {
     }
 
     public void init() {
-        this.configurationManager = ConfigurationManager.getInstance();
+/*        this.configurationManager = ConfigurationManager.getInstance();
         this.configuration = this.configurationManager.getConfiguration("player/cauldron_data.yml", "player/cauldron_data.yml");
         try {
             for (String playerUUIDStr : this.configuration.getConfigurationSection("players").getKeys(false)) {
@@ -42,11 +42,11 @@ public class PlayerCauldronManager {
                 this.playerCauldronHashMap.put(playerUUID, playerPersistent);
             }
         } catch (NullPointerException nullPointerException) {
-        }
+        }*/
     }
 
     public void close() {
-        for (PlayerPersistent value : this.playerCauldronHashMap.values()) {
+/*        for (PlayerPersistent value : this.playerCauldronHashMap.values()) {
             String path = "players." + value.getUuid().toString();
             this.configuration.set(path + ".cauldron", (Object)ObjectConverter.getObjectAsString(value.getItemStacks()));
             this.configuration.set(path + ".virtual_inventory", (Object)ObjectConverter.getObjectAsString(value.getVirtualInventory()));
@@ -56,7 +56,7 @@ public class PlayerCauldronManager {
             }
             this.configuration.set(path + ".cook_equipment", null);
         }
-        this.configurationManager.saveConfiguration(this.configuration, "player/cauldron_data.yml");
+        this.configurationManager.saveConfiguration(this.configuration, "player/cauldron_data.yml"); */
     }
 
     public PlayerPersistent getPlayerCauldron(Player player) {
