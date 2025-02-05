@@ -97,16 +97,13 @@ public class RecipeAPI {
         return data != null && data.transferring || CookManager.getInstance().isLoading(uuid);
     }
     private boolean acquireDataLock(UUID uuid, String server) {
-        if (dataLocks.containsKey(uuid)) {
-            PlayerDataLock existingLock = dataLocks.get(uuid);
-            if (!existingLock.isExpired()) {
-                return false;
+        PlayerDataLock newLock = new PlayerDataLock(uuid, server, LOCK_TIMEOUT_SECONDS);
+        return dataLocks.compute(uuid, (key, existingLock) -> {
+            if (existingLock == null || existingLock.isExpired()) {
+                return newLock;
             }
-            dataLocks.remove(uuid);
-        }
-
-        dataLocks.put(uuid, new PlayerDataLock(uuid, server, LOCK_TIMEOUT_SECONDS));
-        return true;
+            return existingLock;
+        }) == newLock;
     }
     private void releaseDataLock(UUID uuid) {
         dataLocks.remove(uuid);
@@ -374,10 +371,10 @@ public class RecipeAPI {
                     String invInfo = rs.getString("inventory_info");
                     return applyPlayerData(uuid, cookInfo, invInfo);
                 }
+                return false;
             }
-            return false;
         } catch (Exception e) {
-            plugin.getLogger().severe("Failed to load player data: " + e.getMessage());
+            handleRetry(uuid, () -> loadDataFromDB(uuid));
             return false;
         }
     }
@@ -603,44 +600,110 @@ public class RecipeAPI {
                 serverName.equals("collect");
     }
     public CompletableFuture<Boolean> handleServerTransfer(UUID uuid, String targetServer) {
-
         return CompletableFuture.supplyAsync(() -> {
-            if (!acquireDataLock(uuid, targetServer)) {
-                throw new IllegalStateException("Unable to acquire data lock for player transfer");
-            }
+            if (!acquireDataLock(uuid, targetServer)) return false;
 
-            try {
-                boolean isRecipeServer = targetServer.equals("lobby") ||
-                        targetServer.equals("island") ||
-                        targetServer.equals("rpg") ||
-                        targetServer.equals("collect");
-
-                if (isRecipeServer) {
-                    if (!setPlayerTransferring(uuid, true)) {
-                        releaseDataLock(uuid);
-                        throw new IllegalStateException("Player is already being transferred");
-                    }
-
-                    DataVersion newVersion = new DataVersion(uuid, targetServer);
-                    dataVersions.put(uuid, newVersion);
+            CompletableFuture<String> cookDataFuture = new CompletableFuture<>();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                CookTimeBossBar currentCook = CookManager.getInstance().getCook(uuid);
+                if (currentCook != null) {
+                    cookDataFuture.complete(getPlayerCookInformation(uuid));
+                } else {
+                    cookDataFuture.complete("{}");
                 }
+            });
 
-                savePlayerData(uuid, targetServer);
-                updateServerHistory(uuid, getCurrentServer(), targetServer);
-
-                return true;
+            String capturedCookInfo;
+            try {
+                capturedCookInfo = cookDataFuture.get(5, TimeUnit.SECONDS);
             } catch (Exception e) {
-                handleTransferFailure(uuid);
-                throw e;
-            } finally {
-                releaseDataLock(uuid);
+                plugin.getLogger().severe("Failed to capture cook info before transfer: " + e.getMessage());
+                capturedCookInfo = "{}";
             }
+
+            savePlayerDataWithCapturedCookInfo(uuid, targetServer, capturedCookInfo, getPlayerInventoryInformation(uuid));
+
+            updateServerHistory(uuid, getCurrentServer(), targetServer);
+            DataVersion newVersion = new DataVersion(uuid, targetServer);
+            dataVersions.put(uuid, newVersion);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                CookTimeBossBar currentCook = CookManager.getInstance().getCook(uuid);
+                if (currentCook != null) {
+                    currentCook.interrupt();
+                }
+            });
+
+            releaseDataLock(uuid);
+            return true;
         }, asyncExecutor);
     }
+    public void savePlayerDataWithCapturedCookInfo(UUID uuid, String serverName, String capturedCookInfo, String invInfo) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection conn = dataSource.getConnection()) {
+                conn.setAutoCommit(false);
+                long updateTime = System.currentTimeMillis();
+                PlayerTransferData data = transferData.get(uuid);
+                boolean isTransferring = data != null && data.transferring;
+
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "INSERT INTO recipe_data (uuid, server_name, cook_info, inventory_info, last_update, transfer_status) " +
+                                "VALUES (?, ?, ?, ?, ?, ?) " +
+                                "ON DUPLICATE KEY UPDATE " +
+                                "server_name = ?, cook_info = ?, inventory_info = ?, last_update = ?, transfer_status = ?")) {
+
+                    stmt.setString(1, uuid.toString());
+                    stmt.setString(2, serverName);
+                    stmt.setString(3, capturedCookInfo);
+                    stmt.setString(4, invInfo);
+                    stmt.setLong(5, updateTime);
+                    stmt.setBoolean(6, isTransferring);
+
+                    stmt.setString(7, serverName);
+                    stmt.setString(8, capturedCookInfo);
+                    stmt.setString(9, invInfo);
+                    stmt.setLong(10, updateTime);
+                    stmt.setBoolean(11, isTransferring);
+
+                    stmt.executeUpdate();
+                    conn.commit();
+
+                    if (data != null) {
+                        data.saved = true;
+                        if (!isTransferring) {
+                            data.future.complete(true);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to save player data with captured cook info: " + e.getMessage());
+            }
+        });
+    }
+
+
     public boolean isPlayerTransferring(UUID uuid) {
         PlayerTransferData data = transferData.get(uuid);
         return data != null && data.transferring;
     }
+    private void loadPlayerDataSync(UUID uuid) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                boolean result = loadDataFromDB(uuid);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (result) {
+                        applyPlayerData(uuid,
+                                getPlayerCookInformation(uuid),
+                                getPlayerInventoryInformation(uuid)
+                        );
+                    }
+                });
+            } catch (Exception e) {
+                plugin.getLogger().severe("Sync load failed: " + e.getMessage());
+            }
+        });
+    }
+
     public CompletableFuture<Boolean> handleNetworkQuit(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             if (!acquireDataLock(uuid, "QUIT")) {
@@ -668,35 +731,40 @@ public class RecipeAPI {
     public CompletableFuture<Boolean> handleNetworkJoin(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             if (!acquireDataLock(uuid, getCurrentServer())) {
-                throw new IllegalStateException("Unable to acquire data lock for player join");
+                throw new IllegalStateException("Failed to acquire lock for UUID: " + uuid);
             }
-
             try {
-                if (isPlayerTransferring(uuid)) {
-                    waitForPreviousTransfer(uuid);
-                }
+                boolean loaded = loadPlayerData(uuid)
+                        .thenApplyAsync(result -> {
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                CookLoadingEvent event = new CookLoadingEvent(
+                                        uuid,
+                                        getPlayerCookInformation(uuid),
+                                        getPlayerInventoryInformation(uuid)
+                                );
+                                Bukkit.getPluginManager().callEvent(event);
+                            });
+                            return result;
+                        }).get(15, TimeUnit.SECONDS);
 
-                boolean loaded = loadPlayerData(uuid).get(5, TimeUnit.SECONDS);
-                if (loaded) {
-                    setPlayerTransferring(uuid, false);
-                    forceDataSyncOnJoin(uuid);
-                    String cookInfo = getPlayerCookInformation(uuid);
-                    String invInfo = getPlayerInventoryInformation(uuid);
-                    CookLoadingEvent cookLoadingEvent = new CookLoadingEvent(uuid, cookInfo, invInfo);
-                    Bukkit.getPluginManager().callEvent(cookLoadingEvent);
-                    return true;
-                }
-                return false;
-
-            } catch (Exception e) {
-                plugin.getLogger().severe("Failed to handle network join: " + e);
-                recoverFromFailure(uuid);
-                throw new CompletionException(e);
+                setPlayerTransferring(uuid, false);
+                return loaded;
+            } catch (TimeoutException e) {
+                handleTimeout(uuid);
+                throw new CompletionException("Data load timeout", e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             } finally {
                 releaseDataLock(uuid);
             }
-        }, asyncExecutor);
+        }, asyncExecutor).exceptionally(ex -> {
+            plugin.getLogger().severe("Network join failed: " + ex.getMessage());
+            return false;
+        });
     }
+
     private void waitForPreviousTransfer(UUID uuid) throws InterruptedException, TimeoutException, ExecutionException {
         PlayerTransferData data = transferData.get(uuid);
         if (data != null && data.transferring) {
