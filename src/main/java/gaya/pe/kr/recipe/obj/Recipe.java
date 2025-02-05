@@ -36,8 +36,8 @@ public final class Recipe {
         this.recipeName = recipeBuilder.recipeName;
         this.makeTime = recipeBuilder.makeTime;
         this.recipeItem = recipeBuilder.recipeItem;
-        this.resultName = getItemDisplay(recipeItem);
         this.result = recipeBuilder.result;
+        this.resultName = getItemDisplay(result);
         this.ingredient = recipeBuilder.ingredient;
         this.sortOrder = recipeBuilder.sortOrder;
         RecipeServiceManager.getInstance().getRecipeContainer().addRecipe(this);
