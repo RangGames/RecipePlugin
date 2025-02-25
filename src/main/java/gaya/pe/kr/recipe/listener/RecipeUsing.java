@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class RecipeUsing
-implements Listener {
+        implements Listener {
     LuckPerms luckPerms = RecipePlugin.getLuckPerms();
     private final ExecutorService asyncExecutor = Executors.newFixedThreadPool(2);
 
@@ -69,6 +69,7 @@ implements Listener {
             }
         }
     }
+
     @EventHandler
     public void quitPlayer(PlayerQuitEvent event) {
         RecipeServiceManager.getInstance().removeNowUsingRecipePlayer(event.getPlayer());

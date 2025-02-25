@@ -34,8 +34,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class CookTimeBossBar
-implements Runnable,
-Listener {
+        implements Runnable,
+        Listener {
     int taskId;
     UUID uuid;
     Recipe recipe;
@@ -52,10 +52,11 @@ Listener {
     public CookTimeBossBar(UUID uuid, Recipe recipe, String bossBarTitle, int amount, int nowMakeItemAmount, int time, int makeTime) {
         this(uuid, recipe, bossBarTitle, amount, nowMakeItemAmount, time, makeTime, -1);
     }
+
     public CookTimeBossBar(UUID uuid, Recipe recipe, String bossBarTitle, int amount, int nowMakeItemAmount, int time, int makeTime, int maxCount) {
         this.uuid = uuid;
         this.recipe = recipe;
-        this.bossBar = Bukkit.createBossBar((String)bossBarTitle, (BarColor)BarColor.GREEN, (BarStyle)BarStyle.SOLID, (BarFlag[])new BarFlag[0]);
+        this.bossBar = Bukkit.createBossBar((String) bossBarTitle, (BarColor) BarColor.GREEN, (BarStyle) BarStyle.SOLID, (BarFlag[]) new BarFlag[0]);
         this.bossBar.setProgress(0.0);
         this.bossBarTitle = bossBarTitle;
         this.amount = amount;
@@ -77,7 +78,7 @@ Listener {
         List lore;
         this.uuid = player.getUniqueId();
         this.recipe = recipe;
-        this.bossBar = Bukkit.createBossBar((String)bossBarTitle, (BarColor)BarColor.GREEN, (BarStyle)BarStyle.SOLID, (BarFlag[])new BarFlag[0]); // previous blue
+        this.bossBar = Bukkit.createBossBar((String) bossBarTitle, (BarColor) BarColor.GREEN, (BarStyle) BarStyle.SOLID, (BarFlag[]) new BarFlag[0]); // previous blue
         this.bossBar.setProgress(0.0);
         this.bossBarTitle = bossBarTitle;
         this.amount = amount;
@@ -89,15 +90,16 @@ Listener {
         ItemStack headItem = PlayerCauldronManager.getInstance().getPlayerCauldron(player).getCookEquipment();
         if (!Filter.isNullOrAirItem(headItem) && (lore = headItem.getItemMeta().getLore()) != null) {
             Iterator loreiter = lore.iterator();
-            while(loreiter.hasNext()) {
-                String s = (String)loreiter.next();
+            while (loreiter.hasNext()) {
+                String s = (String) loreiter.next();
                 s = ChatColor.stripColor(s);
                 if (!s.contains("요리 시간")) continue;
                 try {
                     int cookTime = Integer.parseInt(s.replaceAll("[^0-9]", "").trim());
                     this.makeTime -= cookTime;
 
-                } catch (NumberFormatException numberFormatException) {}
+                } catch (NumberFormatException numberFormatException) {
+                }
             }
         }
         if (this.makeTime < 0) {
@@ -114,7 +116,7 @@ Listener {
             return;
         }
         double progress = 0.0;
-        progress = this.time == 0 || this.makeTime == 0 ? 0.0 : (double)this.time / (double)this.makeTime;
+        progress = this.time == 0 || this.makeTime == 0 ? 0.0 : (double) this.time / (double) this.makeTime;
         if (progress < 0.0) {
             progress = 0.0;
         }
@@ -122,7 +124,7 @@ Listener {
             progress = 1.0;
         }
         this.bossBar.setProgress(progress);
-        this.bossBar.setTitle(this.bossBarTitle.replace("%time%", Integer.toString(this.makeTime - this.time)).replace("%result_name%", this.recipe.getResultName()).replace("%recipe_name%", this.recipe.getRecipeName()).replace("%remain_amount%", Integer.toString(this.amount - this.nowMakeItemAmount)).replace("%now_amount%", Integer.toString( this.nowMakeItemAmount)).replace("%max_amount%", Integer.toString(this.getMaxAmount())));
+        this.bossBar.setTitle(this.bossBarTitle.replace("%time%", Integer.toString(this.makeTime - this.time)).replace("%result_name%", this.recipe.getResultName()).replace("%recipe_name%", this.recipe.getRecipeName()).replace("%remain_amount%", Integer.toString(this.amount - this.nowMakeItemAmount)).replace("%now_amount%", Integer.toString(this.nowMakeItemAmount)).replace("%max_amount%", Integer.toString(this.getMaxAmount())));
         if (this.time < this.makeTime) {
             ++this.time;
         } else {
@@ -138,8 +140,8 @@ Listener {
             itemStackList.add(itemStack);
         }
         if (this.recipe.makeItem(this.uuid, playerPersistent, itemStackList, 1)) {
-            CookAddedEvent cookAddedEvent = new CookAddedEvent(uuid, recipe, playerPersistent.toString());
-            Bukkit.getPluginManager().callEvent(cookAddedEvent);
+            //CookAddedEvent cookAddedEvent = new CookAddedEvent(uuid, recipe, playerPersistent.toString());
+            //Bukkit.getPluginManager().callEvent(cookAddedEvent);
             ++this.nowMakeItemAmount;
             this.time = 0;
             if (this.nowMakeItemAmount >= this.amount) {
@@ -158,13 +160,13 @@ Listener {
         this.bossBar.removeAll();
         this.bossBar = null;
         SchedulerUtil.cancel(this.taskId);
-        HandlerList.unregisterAll((Listener)this);
+        HandlerList.unregisterAll((Listener) this);
         CookManager.getInstance().removeCook(this.uuid);
     }
 
     public void start() {
         CookManager.getInstance().addCook(this.uuid, this);
-        this.player = Bukkit.getPlayer((UUID)this.uuid);
+        this.player = Bukkit.getPlayer((UUID) this.uuid);
         if (this.player != null) {
             this.bossBar.addPlayer(this.player);
             this.player.closeInventory();
@@ -224,7 +226,10 @@ Listener {
     public int getAmount() {
         return this.amount;
     }
-    public int getMaxAmount() { return this.maxCraftable; }
+
+    public int getMaxAmount() {
+        return this.maxCraftable;
+    }
 
     public int getNowMakeItemAmount() {
         return this.nowMakeItemAmount;

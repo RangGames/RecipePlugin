@@ -23,9 +23,11 @@ public class CookLoadingEvent extends Event {
     public UUID getUuid() {
         return uuid;
     }
+
     public String getData1() {
         return data1;
     }
+
     public String getData2() {
         return data2;
     }
@@ -33,6 +35,7 @@ public class CookLoadingEvent extends Event {
     public static HandlerList getHandlerList() {
         return handlers;
     }
+
     @Override
     public HandlerList getHandlers() {
         return handlers;

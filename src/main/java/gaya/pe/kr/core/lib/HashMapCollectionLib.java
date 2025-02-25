@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class HashMapCollectionLib<K, V>
-implements Serializable {
+        implements Serializable {
     HashMap<K, V> hashMap = new HashMap();
 
     public void putData(K key, V value) {

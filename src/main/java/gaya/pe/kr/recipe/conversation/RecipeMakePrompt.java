@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class RecipeMakePrompt
-extends StringPrompt {
+        extends StringPrompt {
     Recipe recipe;
     private static final int MAX_AMOUNT = 10000;
 
@@ -75,6 +75,7 @@ extends StringPrompt {
     private void sendMessage(Player player, String message) {
         player.sendRawMessage(RecipePlugin.getPREFIX() + " " + message);
     }
+
     private int parseAmount(@Nullable String input) throws NumberFormatException {
         if (input == null) {
             throw new NumberFormatException("Input is null");

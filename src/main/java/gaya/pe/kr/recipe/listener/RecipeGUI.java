@@ -9,7 +9,9 @@ import gaya.pe.kr.recipe.obj.Ingredient;
 import gaya.pe.kr.recipe.obj.Recipe;
 import gaya.pe.kr.recipe.obj.RecipeContainer;
 import gaya.pe.kr.recipe.obj.RecipeGUIIndex;
+
 import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,7 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 public class RecipeGUI
-implements Listener {
+        implements Listener {
     @EventHandler
     public void usingRecipeGUI(InventoryClickEvent event) {
         Inventory clickedInventory = event.getClickedInventory();
@@ -28,7 +30,7 @@ implements Listener {
             return;
         }
         String title = event.getView().getTitle();
-        Player player = (Player)event.getWhoClicked();
+        Player player = (Player) event.getWhoClicked();
         PlayerInventory playerInventory = player.getInventory();
         if (title.equals("§8요리 가방")) {
             return;
@@ -62,7 +64,7 @@ implements Listener {
                         Recipe recipe = recipeContainer.getRecipe(recipeItem);
                         recipeServiceManager.startRecipe(player, recipe);
                     } else {
-                        RecipePlugin.msg(player,  "&c레시피를 클릭해 주세요!");
+                        RecipePlugin.msg(player, "&c레시피를 클릭해 주세요!");
                         player.closeInventory();
                     }
                 } else {
@@ -100,7 +102,7 @@ implements Listener {
             return;
         }
         String title = event.getView().getTitle();
-        Player player = (Player)event.getWhoClicked();
+        Player player = (Player) event.getWhoClicked();
         if (title.contains("[RECIPE]")) {
             int clickedIndex = event.getSlot();
             String[] titleData = title.replace("[RECIPE]", "").trim().split("/");

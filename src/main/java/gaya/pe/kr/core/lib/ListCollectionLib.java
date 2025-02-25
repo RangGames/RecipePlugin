@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ListCollectionLib<T>
-implements Serializable {
+        implements Serializable {
     List<T> list = new ArrayList<T>();
 
     public void addData(T targetData) {

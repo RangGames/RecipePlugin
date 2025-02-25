@@ -17,6 +17,7 @@ import gaya.pe.kr.recipe.obj.Recipe;
 import gaya.pe.kr.recipe.obj.RecipeContainer;
 import gaya.pe.kr.recipe.obj.RecipeGUIIndex;
 import gaya.pe.kr.recipe.scheduler.RecipeDataBackupTask;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,6 +27,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -83,7 +85,7 @@ public final class RecipeServiceManager {
                 path = "recipe." + recipeName;
                 String resultStr = this.configuration.getString(path + ".result");
                 if (resultStr != null) {
-                    recipeBuilder.setResult((ItemStack)ObjectConverter.getObject(resultStr));
+                    recipeBuilder.setResult((ItemStack) ObjectConverter.getObject(resultStr));
                 }
                 if ((recipeItem = this.configuration.getString(path + ".recipe_item")) != null) {
                     recipeBuilder.setRecipeItem((ItemStack) ObjectConverter.getObject(recipeItem));
@@ -109,12 +111,12 @@ public final class RecipeServiceManager {
         FileConfiguration optionConfiguration = this.configurationManager.getConfiguration("Option/config.yml", "Option/config.yml");
         for (String itemName : optionConfiguration.getConfigurationSection("item").getKeys(false)) {
             path = "item." + itemName;
-            Material material = Material.valueOf((String)optionConfiguration.getString(path + ".material").toUpperCase(Locale.ROOT));
+            Material material = Material.valueOf((String) optionConfiguration.getString(path + ".material").toUpperCase(Locale.ROOT));
             int customModelData = optionConfiguration.getInt(path + ".custom_model_data");
             String displayName = optionConfiguration.getString(path + ".display_name").replace("&", "§");
             List lore = optionConfiguration.getStringList(path + ".lore");
             if (!lore.isEmpty()) {
-                lore.replaceAll(s -> ChatColor.translateAlternateColorCodes((char)'&', (String)s));
+                lore.replaceAll(s -> ChatColor.translateAlternateColorCodes((char) '&', (String) s));
             }
             ItemStack itemStack = ItemModifier.createItemStack(material, customModelData, displayName, lore);
             switch (itemName) {
@@ -153,9 +155,9 @@ public final class RecipeServiceManager {
                 ItemStack result = recipe.getResult();
                 ItemStack recipeItem = recipe.getRecipeItem();
                 int makeTime = recipe.getMakeTime();
-                this.configuration.set(path + ".result", (Object)ObjectConverter.getObjectAsString(result));
-                this.configuration.set(path + ".recipe_item", (Object)ObjectConverter.getObjectAsString(recipeItem));
-                this.configuration.set(path + ".make_time", (Object)makeTime);
+                this.configuration.set(path + ".result", (Object) ObjectConverter.getObjectAsString(result));
+                this.configuration.set(path + ".recipe_item", (Object) ObjectConverter.getObjectAsString(recipeItem));
+                this.configuration.set(path + ".make_time", (Object) makeTime);
             }
             this.configurationManager.saveConfiguration(this.configuration, "Recipe/data.yml");
         }
@@ -170,6 +172,7 @@ public final class RecipeServiceManager {
     public RecipeContainer getRecipeContainer() {
         return this.recipeContainer;
     }
+
     public Integer getCustomModelDataArrange(ItemMeta i) {
         if (i.hasCustomModelData()) {
             return i.getCustomModelData();
@@ -177,20 +180,21 @@ public final class RecipeServiceManager {
             return 0;
         }
     }
+
     public List<Recipe> getAllowRecipe(Player player) {
         RecipeContainer recipeContainer = this.getRecipeContainer();
 
-        return (List)recipeContainer.getRecipeList().stream().filter((recipe) -> {
-                   return player.hasPermission("recipe." + recipe.getRecipeName());
-                }).sorted(Comparator.comparing((recipe) -> {
-                    return getCustomModelDataArrange(((ItemMeta)Objects.requireNonNull(recipe.getRecipeItem().getItemMeta())));
-                })).collect(Collectors.toList());
+        return (List) recipeContainer.getRecipeList().stream().filter((recipe) -> {
+            return player.hasPermission("recipe." + recipe.getRecipeName());
+        }).sorted(Comparator.comparing((recipe) -> {
+            return getCustomModelDataArrange(((ItemMeta) Objects.requireNonNull(recipe.getRecipeItem().getItemMeta())));
+        })).collect(Collectors.toList());
 
     }
 
     public void startRecipe(Player player, Recipe recipe) {
         if (!this.nowUsingRecipePlayers.contains(player.getUniqueId())) {
-            Conversation conversation = this.conversationFactory.withFirstPrompt((Prompt)new RecipeMakePrompt(recipe)).withLocalEcho(false).buildConversation((Conversable)player);
+            Conversation conversation = this.conversationFactory.withFirstPrompt((Prompt) new RecipeMakePrompt(recipe)).withLocalEcho(false).buildConversation((Conversable) player);
             conversation.begin();
             this.addNowUsingRecipePlayer(player);
         } else {
@@ -213,7 +217,7 @@ public final class RecipeServiceManager {
             RecipePlugin.msg(player, "&c제작할 수 있는 요리가 없습니다");
             return;
         }
-        Inventory inventory = Bukkit.createInventory(null, (int)54, (String)this.getRecipeGUITitle().replace("%check_word%", this.getRecipeGUICheckWord()).replace("%page%", Integer.toString(page)).replace("&", "§"));
+        Inventory inventory = Bukkit.createInventory(null, (int) 54, (String) this.getRecipeGUITitle().replace("%check_word%", this.getRecipeGUICheckWord()).replace("%page%", Integer.toString(page)).replace("&", "§"));
         int firstIndex = (page - 1) * 9;
         int recipeSize = recipes.size();
         if (firstIndex > recipeSize || firstIndex < 0) {
@@ -234,7 +238,7 @@ public final class RecipeServiceManager {
 
     public void controlRecipe(Player player, String recipeName, int makeTime) {
         String title = String.format("[RECIPE] %s/%d", recipeName, makeTime);
-        Inventory inventory = Bukkit.createInventory(null, (int)45, (String)title);
+        Inventory inventory = Bukkit.createInventory(null, (int) 45, (String) title);
         RecipeContainer recipeContainer = this.getRecipeContainer();
         if (recipeContainer.existRecipeName(recipeName)) {
             Recipe recipe = recipeContainer.getRecipe(recipeName);
@@ -254,7 +258,7 @@ public final class RecipeServiceManager {
             inventory.setItem(14, recipeItemGuideLine);
             inventory.setItem(32, resultItemGuideLine);
         }
-        ItemStack guideLineItem = ItemModifier.createItemStack(Material.RED_WOOL, 0,  "§f재료 위치 파악을 위해 설치한 아이템 입니다 안쪽에 설치하시면 됩니다", null);
+        ItemStack guideLineItem = ItemModifier.createItemStack(Material.RED_WOOL, 0, "§f재료 위치 파악을 위해 설치한 아이템 입니다 안쪽에 설치하시면 됩니다", null);
         for (int a = 0; a <= 4; ++a) {
             int anotherIndex = a + 36;
             inventory.setItem(a, guideLineItem);
@@ -264,7 +268,8 @@ public final class RecipeServiceManager {
                 inventory.setItem(a + row * 9, guideLineItem);
             }
         }
-        ItemStack saveItem = ItemModifier.createItemStack(Material.PAPER, 0, "§6저장", Collections.singletonList("§f클릭 시, 현재 상태를 저장합니다"));;
+        ItemStack saveItem = ItemModifier.createItemStack(Material.PAPER, 0, "§6저장", Collections.singletonList("§f클릭 시, 현재 상태를 저장합니다"));
+        ;
         inventory.setItem(23, saveItem);
         player.openInventory(inventory);
     }

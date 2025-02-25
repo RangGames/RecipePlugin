@@ -3,10 +3,12 @@ package gaya.pe.kr.player.manager;
 import gaya.pe.kr.core.manager.ConfigurationManager;
 import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.player.data.PlayerPersistent;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -81,9 +83,11 @@ public class PlayerCauldronManager {
         }
         return playerPersistent;
     }
+
     public Set<UUID> getActivePlayers() {
         return new HashSet<>(playerCauldronHashMap.keySet());
     }
+
     private static class SingleTon {
         private static final PlayerCauldronManager PLAYER_CAULDRON_MANAGER = new PlayerCauldronManager();
 

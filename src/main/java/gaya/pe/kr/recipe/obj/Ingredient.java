@@ -3,9 +3,11 @@ package gaya.pe.kr.recipe.obj;
 import gaya.pe.kr.core.util.filter.Filter;
 import gaya.pe.kr.core.util.method.ObjectConverter;
 import gaya.pe.kr.recipe.exception.InsufficientIngredientException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -16,11 +18,11 @@ public final class Ingredient {
     public Ingredient(List<?> ingredientList) throws InsufficientIngredientException {
         for (Object o : ingredientList) {
             if (o instanceof String) {
-                this.addIngredient((ItemStack)ObjectConverter.getObject((String)o));
+                this.addIngredient((ItemStack) ObjectConverter.getObject((String) o));
                 continue;
             }
             if (!(o instanceof ItemStack)) continue;
-            this.addIngredient((ItemStack)o);
+            this.addIngredient((ItemStack) o);
         }
     }
 

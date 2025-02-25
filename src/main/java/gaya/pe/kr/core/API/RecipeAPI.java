@@ -56,6 +56,7 @@ public class RecipeAPI {
             Runtime.getRuntime().availableProcessors(),
             new ThreadFactory() {
                 private final AtomicInteger count = new AtomicInteger(0);
+
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Thread(r, "RecipeAPI-Worker-" + count.getAndIncrement());
@@ -92,10 +93,12 @@ public class RecipeAPI {
 
         initializeScheduledTasks();
     }
+
     public boolean isDataLoading(UUID uuid) {
         PlayerTransferData data = transferData.get(uuid);
         return data != null && data.transferring || CookManager.getInstance().isLoading(uuid);
     }
+
     private boolean acquireDataLock(UUID uuid, String server) {
         PlayerDataLock newLock = new PlayerDataLock(uuid, server, LOCK_TIMEOUT_SECONDS);
         return dataLocks.compute(uuid, (key, existingLock) -> {
@@ -105,9 +108,11 @@ public class RecipeAPI {
             return existingLock;
         }) == newLock;
     }
+
     private void releaseDataLock(UUID uuid) {
         dataLocks.remove(uuid);
     }
+
     private void handleTimeout(UUID uuid) {
         try {
             PlayerTransferData data = transferData.get(uuid);
@@ -123,6 +128,7 @@ public class RecipeAPI {
             plugin.getLogger().severe("Error handling timeout for " + uuid + ": " + e.getMessage());
         }
     }
+
     private void recoverFromFailure(UUID uuid) {
         try {
             try (Connection conn = dataSource.getConnection()) {
@@ -190,6 +196,7 @@ public class RecipeAPI {
             plugin.getLogger().severe("Failed to initialize database: " + e.getMessage());
         }
     }
+
     public static class ItemStackSerializer {
         public static String serialize(ItemStack[] items) throws Exception {
             try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -211,6 +218,7 @@ public class RecipeAPI {
             }
         }
     }
+
     private void initializeDatabase() {
         String createTableSQL =
                 "CREATE TABLE IF NOT EXISTS recipe_data (" +
@@ -231,6 +239,7 @@ public class RecipeAPI {
             plugin.getLogger().severe("Failed to create database table: " + e.getMessage());
         }
     }
+
     public void updateServerHistory(UUID uuid, String fromServer, String toServer) {
         try (Connection conn = dataSource.getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(
@@ -263,6 +272,7 @@ public class RecipeAPI {
             return false;
         }
     }
+
     public void handlePlayerQuit(UUID uuid) {
         try (Connection conn = dataSource.getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(
@@ -287,6 +297,7 @@ public class RecipeAPI {
             plugin.getLogger().severe("Failed to handle player quit: " + e.getMessage());
         }
     }
+
     private void updatePlayerData(UUID uuid, String targetServer, boolean isTransferring) {
         try (Connection conn = dataSource.getConnection()) {
             try {
@@ -331,6 +342,7 @@ public class RecipeAPI {
             throw new RuntimeException("Database connection failed", e);
         }
     }
+
     private void handleTransferFailure(UUID uuid) {
         PlayerTransferData data = transferData.remove(uuid);
         if (data != null) {
@@ -348,6 +360,7 @@ public class RecipeAPI {
             });
         }
     }
+
     public CompletableFuture<Boolean> loadPlayerData(UUID uuid) {
         CookManager.getInstance().setLoading(uuid, true);
         return CompletableFuture.supplyAsync(() -> {
@@ -378,6 +391,7 @@ public class RecipeAPI {
             return false;
         }
     }
+
     public void bulkSavePlayers(Collection<UUID> uuids) {
         asyncExecutor.execute(() -> {
             final String sql = "INSERT INTO recipe_data (uuid, server_name, cook_info, inventory_info, last_update, transfer_status) " +
@@ -411,9 +425,10 @@ public class RecipeAPI {
             }
         });
     }
+
     private void initializeScheduledTasks() {
         startAutoSave();
-        }
+    }
 
     public void savePlayerData(UUID uuid, String serverName) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -509,6 +524,7 @@ public class RecipeAPI {
             return "{}";
         }
     }
+
     private boolean applyPlayerData(UUID uuid, String cookInfo, String invInfo) {
         try {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
@@ -593,12 +609,14 @@ public class RecipeAPI {
             plugin.getLogger().warning("Failed to apply cooking status for " + uuid + ": " + e.getMessage());
         }
     }
+
     private boolean isRecipeServer(String serverName) {
         return serverName.equals("lobby") ||
                 serverName.equals("island") ||
                 serverName.equals("rpg") ||
                 serverName.equals("collect");
     }
+
     public CompletableFuture<Boolean> handleServerTransfer(UUID uuid, String targetServer) {
         return CompletableFuture.supplyAsync(() -> {
             if (!acquireDataLock(uuid, targetServer)) return false;
@@ -638,6 +656,7 @@ public class RecipeAPI {
             return true;
         }, asyncExecutor);
     }
+
     public void savePlayerDataWithCapturedCookInfo(UUID uuid, String serverName, String capturedCookInfo, String invInfo) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Connection conn = dataSource.getConnection()) {
@@ -686,6 +705,7 @@ public class RecipeAPI {
         PlayerTransferData data = transferData.get(uuid);
         return data != null && data.transferring;
     }
+
     private void loadPlayerDataSync(UUID uuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
@@ -728,6 +748,7 @@ public class RecipeAPI {
             }
         }, asyncExecutor);
     }
+
     public CompletableFuture<Boolean> handleNetworkJoin(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             if (!acquireDataLock(uuid, getCurrentServer())) {
@@ -774,6 +795,7 @@ public class RecipeAPI {
             }
         }
     }
+
     private void handleTransferCancellation(UUID uuid) {
         try {
             PlayerTransferData data = transferData.get(uuid);
@@ -795,6 +817,7 @@ public class RecipeAPI {
             plugin.getLogger().severe("Failed to cancel transfer: " + e.getMessage());
         }
     }
+
     private void handleRetry(UUID uuid, Runnable action) {
         int currentRetry = retryCount.getOrDefault(uuid, 0);
         if (currentRetry < MAX_RETRY_COUNT) {
@@ -811,9 +834,11 @@ public class RecipeAPI {
             recoverFromFailure(uuid);
         }
     }
+
     private String getCurrentServer() {
         return plugin.getConfig().getString("server-name", "unknown");
     }
+
     public CompletableFuture<Boolean> verifyTransfer(UUID uuid, String targetServer) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection conn = dataSource.getConnection()) {
@@ -835,6 +860,7 @@ public class RecipeAPI {
             }
         });
     }
+
     private void savePlayerDataWithInfo(UUID uuid, String serverName, String cookInfo, String invInfo) {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
@@ -877,6 +903,7 @@ public class RecipeAPI {
             plugin.getLogger().severe("Failed to save transfer data: " + e.getMessage());
         }
     }
+
     public void forceDataSyncOnJoin(UUID uuid) {
         transferData.remove(uuid);
 
@@ -913,10 +940,12 @@ public class RecipeAPI {
                     return null;
                 });
     }
+
     private int getNowCount(String uuid) {
         UUID playerUUID = UUID.fromString(uuid);
         return CookManager.getInstance().getCook(playerUUID).getNowMakeItemAmount();
     }
+
     private int getMaxCount(String uuid) {
         UUID playerUUID = UUID.fromString(uuid);
         return CookManager.getInstance().getCook(playerUUID).getMaxAmount();
@@ -968,6 +997,7 @@ public class RecipeAPI {
             dataSource.close();
         }
     }
+
     private void startAutoSave() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             Set<UUID> onlinePlayers = new HashSet<>();

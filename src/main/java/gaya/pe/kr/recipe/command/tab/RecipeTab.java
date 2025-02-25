@@ -1,9 +1,11 @@
 package gaya.pe.kr.recipe.command.tab;
 
 import gaya.pe.kr.recipe.manager.RecipeServiceManager;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -12,11 +14,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class RecipeTab
-implements TabCompleter {
+        implements TabCompleter {
     @Nullable
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (sender instanceof Player) {
-            Player player = ((Player)sender).getPlayer();
+            Player player = ((Player) sender).getPlayer();
             boolean add = player.hasPermission("cook.add");
             boolean edit = player.hasPermission("cook.edit");
             boolean delete = player.hasPermission("cook.delete");

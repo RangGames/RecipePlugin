@@ -1,10 +1,12 @@
 package gaya.pe.kr.core.util.filter;
 
 import gaya.pe.kr.core.util.method.UtilMethod;
+
 import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
+
 import org.bukkit.Material;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
@@ -40,7 +42,7 @@ public class Filter {
     }
 
     public static boolean isSuccessRandom(double probability, int multiply) {
-        return (double)random.nextInt(100 * multiply) < probability * (double)multiply;
+        return (double) random.nextInt(100 * multiply) < probability * (double) multiply;
     }
 
     public static int getPlayerItemCount(List<ItemStack> playerItemList, ItemStack ingredient) {
@@ -55,10 +57,11 @@ public class Filter {
         }
         return count;
     }
+
     public static boolean isMatchItem(ItemStack itemStack, ItemStack targetItem) {
         Material targetItemMaterial;
         Material material;
-        if (itemStack != null && targetItem != null && (material = itemStack.getType()).equals((Object)(targetItemMaterial = targetItem.getType()))) {
+        if (itemStack != null && targetItem != null && (material = itemStack.getType()).equals((Object) (targetItemMaterial = targetItem.getType()))) {
             return UtilMethod.getItemDisplay(itemStack).equals(UtilMethod.getItemDisplay(targetItem));
         }
         return false;
@@ -75,14 +78,14 @@ public class Filter {
     }
 
     public static boolean isRightAction(Action action) {
-        return action.equals((Object)Action.RIGHT_CLICK_AIR) || action.equals((Object)Action.RIGHT_CLICK_BLOCK);
+        return action.equals((Object) Action.RIGHT_CLICK_AIR) || action.equals((Object) Action.RIGHT_CLICK_BLOCK);
     }
 
     public static boolean isNullOrAirItem(ItemStack itemStack) {
         if (itemStack == null) {
             return true;
         }
-        return itemStack.getType().equals((Object)Material.AIR);
+        return itemStack.getType().equals((Object) Material.AIR);
     }
 }
 

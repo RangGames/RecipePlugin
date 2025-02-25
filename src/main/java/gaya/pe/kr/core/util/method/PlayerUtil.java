@@ -1,6 +1,7 @@
 package gaya.pe.kr.core.util.method;
 
 import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -23,7 +24,7 @@ public class PlayerUtil {
     }
 
     public static Player getPlayer(Player player, String targetPlayerName) {
-        Player targetPlayer = Bukkit.getPlayer((String)targetPlayerName);
+        Player targetPlayer = Bukkit.getPlayer((String) targetPlayerName);
         if (targetPlayer != null && targetPlayer.isOnline()) {
             return targetPlayer;
         }

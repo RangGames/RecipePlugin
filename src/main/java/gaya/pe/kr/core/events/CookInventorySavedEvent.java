@@ -23,9 +23,11 @@ public class CookInventorySavedEvent extends Event {
     public UUID getUuid() {
         return uuid;
     }
+
     public String getType() {
         return type;
     }
+
     public String getData() {
         return data;
     }
@@ -33,6 +35,7 @@ public class CookInventorySavedEvent extends Event {
     public static HandlerList getHandlerList() {
         return handlers;
     }
+
     @Override
     public HandlerList getHandlers() {
         return handlers;

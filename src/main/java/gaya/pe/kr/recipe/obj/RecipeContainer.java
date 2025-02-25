@@ -2,9 +2,11 @@ package gaya.pe.kr.recipe.obj;
 
 import gaya.pe.kr.core.util.filter.Filter;
 import gaya.pe.kr.recipe.obj.Recipe;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 import org.bukkit.inventory.ItemStack;
 
 public class RecipeContainer {
@@ -31,6 +33,7 @@ public class RecipeContainer {
         }
         return false;
     }
+
     public boolean isResultItem(ItemStack itemStack) {
         for (Recipe value : this.recipeItemAsRecipe.values()) {
             if (!Filter.isMatchItem(value.getResult(), itemStack)) continue;
@@ -46,6 +49,7 @@ public class RecipeContainer {
         }
         return null;
     }
+
     public Recipe getRecipeFromResult(ItemStack itemStack) {
         for (Recipe value : this.recipeItemAsRecipe.values()) {
             if (!Filter.isMatchItem(value.getResult(), itemStack)) continue;

@@ -23,7 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 public class CookEquipment
-implements Listener {
+        implements Listener {
     Inventory inventory;
     Player player;
     PlayerPersistent playerPersistent;
@@ -32,7 +32,7 @@ implements Listener {
     public CookEquipment(Player player) {
         this.player = player;
         this.playerPersistent = PlayerCauldronManager.getInstance().getPlayerCauldron(player);
-        this.inventory = Bukkit.createInventory(null, (int)18, (String)RecipeServiceManager.getInstance().getCookEquipmentTitle());
+        this.inventory = Bukkit.createInventory(null, (int) 18, (String) RecipeServiceManager.getInstance().getCookEquipmentTitle());
         ItemStack itemStack = this.playerPersistent.getCookEquipment();
         if (itemStack != null) {
             this.inventory.setItem(4, itemStack);
@@ -44,12 +44,12 @@ implements Listener {
         EventUtil.register(this, RecipePlugin.getPlugin());
     }
 
-    @EventHandler(priority=EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void zClickEventory(InventoryClickEvent event) {
         Inventory clickedInventory = event.getClickedInventory();
         if (clickedInventory != null) {
             Inventory nowInventory = event.getInventory();
-            Player targetPlayer = (Player)event.getWhoClicked();
+            Player targetPlayer = (Player) event.getWhoClicked();
             PlayerInventory playerInventory = this.player.getInventory();
             if (targetPlayer.getUniqueId().equals(this.player.getUniqueId()) && event.getInventory().equals(this.inventory)) {
                 if (clickedInventory.equals(this.player.getInventory())) {
@@ -78,10 +78,10 @@ implements Listener {
         }
     }
 
-    @EventHandler(priority=EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void zCloseInventory(InventoryCloseEvent event) {
         Inventory closedInventory = event.getInventory();
-        Player closerPlayer = (Player)event.getPlayer();
+        Player closerPlayer = (Player) event.getPlayer();
         if (closerPlayer.getUniqueId().equals(this.player.getUniqueId()) && closedInventory.equals(this.inventory)) {
             ItemStack targetItem = closedInventory.getItem(4);
             CookInventorySavedEvent cookInventorySavedEvent;
@@ -98,7 +98,7 @@ implements Listener {
             if (!Filter.isNullOrAirItem(cursorItem)) {
                 ItemStack itemStack = cursorItem.clone();
             }
-            HandlerList.unregisterAll((Listener)this);
+            HandlerList.unregisterAll((Listener) this);
         }
     }
 
@@ -120,7 +120,7 @@ implements Listener {
                 ++count;
                 continue;
             }
-            if (!content.getType().equals((Object)Material.AIR)) continue;
+            if (!content.getType().equals((Object) Material.AIR)) continue;
             ++count;
         }
         return count;

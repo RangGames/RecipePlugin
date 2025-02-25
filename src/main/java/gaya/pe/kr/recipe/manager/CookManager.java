@@ -5,6 +5,7 @@ import gaya.pe.kr.recipe.manager.RecipeServiceManager;
 import gaya.pe.kr.recipe.obj.Recipe;
 import gaya.pe.kr.recipe.obj.RecipeContainer;
 import gaya.pe.kr.recipe.scheduler.CookTimeBossBar;
+
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,7 @@ public class CookManager {
     FileConfiguration configuration;
     HashMap<UUID, CookTimeBossBar> cookTimeBossBarHashMap = new HashMap();
     private final Set<UUID> loadingPlayers = ConcurrentHashMap.newKeySet();
+
     public void setLoading(UUID uuid, boolean loading) {
         if (loading) {
             loadingPlayers.add(uuid);
@@ -24,12 +26,15 @@ public class CookManager {
             loadingPlayers.remove(uuid);
         }
     }
+
     public boolean isLoading(UUID uuid) {
         return loadingPlayers.contains(uuid);
     }
+
     public static CookManager getInstance() {
         return SingleTon.COOK_MANAGER;
     }
+
     public void cleanupPlayer(UUID uuid) {
         CookTimeBossBar cookTimeBossBar = getCook(uuid);
         if (cookTimeBossBar != null) {
@@ -37,6 +42,7 @@ public class CookManager {
             removeCook(uuid);
         }
     }
+
     public void init() {
 /*        this.configurationManager = ConfigurationManager.getInstance();
         this.configuration = this.configurationManager.getConfiguration("data/cook.yml", "data/cook.yml");
@@ -88,6 +94,7 @@ public class CookManager {
     public void removeCook(UUID uuid) {
         this.cookTimeBossBarHashMap.remove(uuid);
     }
+
     public CookTimeBossBar getCook(UUID uuid) {
         return cookTimeBossBarHashMap.get(uuid);
     }

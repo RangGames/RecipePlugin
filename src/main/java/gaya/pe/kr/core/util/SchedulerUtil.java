@@ -14,12 +14,12 @@ public class SchedulerUtil {
 
     public static int scheduleRepeatingTask(Runnable task, int delay, int interval) {
         Plugin plugin = RecipePlugin.getPlugin();
-        return BUKKIT_SCHEDULER.scheduleSyncRepeatingTask(plugin, task, (long)delay, (long)interval);
+        return BUKKIT_SCHEDULER.scheduleSyncRepeatingTask(plugin, task, (long) delay, (long) interval);
     }
 
     public static void runTaskLater(Runnable task, int delay) {
         Plugin plugin = RecipePlugin.getPlugin();
-        BUKKIT_SCHEDULER.runTaskLater(plugin, task, (long)delay);
+        BUKKIT_SCHEDULER.runTaskLater(plugin, task, (long) delay);
     }
 }
 

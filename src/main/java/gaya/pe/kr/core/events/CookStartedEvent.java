@@ -22,15 +22,19 @@ public class CookStartedEvent extends Event {
         this.data = data;
         this.count = count;
     }
+
     public Integer getAmount() {
         return count;
     }
+
     public UUID getUuid() {
         return uuid;
     }
+
     public Recipe getRecipe() {
         return recipe;
     }
+
     public String getData() {
         return data;
     }
@@ -38,6 +42,7 @@ public class CookStartedEvent extends Event {
     public static HandlerList getHandlerList() {
         return handlers;
     }
+
     @Override
     public HandlerList getHandlers() {
         return handlers;

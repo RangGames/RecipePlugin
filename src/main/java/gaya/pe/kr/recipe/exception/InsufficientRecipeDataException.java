@@ -2,7 +2,7 @@
 package gaya.pe.kr.recipe.exception;
 
 public class InsufficientRecipeDataException
-extends Exception {
+        extends Exception {
     public InsufficientRecipeDataException() {
     }
 

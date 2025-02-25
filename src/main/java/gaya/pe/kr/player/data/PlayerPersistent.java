@@ -5,6 +5,7 @@ import gaya.pe.kr.core.util.method.UtilMethod;
 
 import java.util.Arrays;
 import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -41,7 +42,7 @@ public class PlayerPersistent {
     }
 
     public boolean addItem(ItemStack itemStack) {
-        Inventory inventory = Bukkit.createInventory(null, (int)54);
+        Inventory inventory = Bukkit.createInventory(null, (int) 54);
         inventory.setContents(this.getVirtualInventory());
         if (UtilMethod.getPlayerRemainInventory(inventory.getContents()) > 0) {
             inventory.addItem(new ItemStack[]{itemStack});

@@ -1,6 +1,7 @@
 package gaya.pe.kr.recipe.obj;
 
 import gaya.pe.kr.core.RecipePlugin;
+import gaya.pe.kr.core.events.CookAddedEvent;
 import gaya.pe.kr.core.util.SchedulerUtil;
 import gaya.pe.kr.core.util.filter.Filter;
 import gaya.pe.kr.core.util.method.UtilMethod;
@@ -8,9 +9,11 @@ import gaya.pe.kr.player.data.PlayerPersistent;
 import gaya.pe.kr.recipe.exception.InsufficientRecipeDataException;
 import gaya.pe.kr.recipe.manager.RecipeServiceManager;
 import gaya.pe.kr.recipe.obj.Ingredient;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -65,8 +68,8 @@ public final class Recipe {
         Ingredient ingredientObj = this.getIngredient();
         List<ItemStack> ingredientList = ingredientObj.getIngredientList();
         ArrayList<ItemStack> rollbackItemList = new ArrayList<ItemStack>();
-        Player player = Bukkit.getPlayer((UUID)uuid);
-        Inventory inventory = Bukkit.createInventory(null, (int)54);
+        Player player = Bukkit.getPlayer((UUID) uuid);
+        Inventory inventory = Bukkit.createInventory(null, (int) 54);
         inventory.setContents(playerPersistent.getVirtualInventory());
         if (UtilMethod.getPlayerRemainInventory(inventory.getContents()) < 1) {
             return false;
@@ -78,15 +81,17 @@ public final class Recipe {
                 int removeAmount = UtilMethod.deletePlayerItem(ingredient, removeIngredientAmount, itemStackList);
                 ItemStack cloneIngredient = ingredient.clone();
                 cloneIngredient.setAmount(removeAmount);
-                String errorMsg = String.format("%s&7"+ PostPostion.postpostion(getItemDisplay(ingredient),2) +" %d개 부족합니다", getItemDisplay(ingredient), removeIngredientAmount - removeAmount);
+                String errorMsg = String.format("%s&7" + PostPostion.postpostion(getItemDisplay(ingredient), 2) + " %d개 부족합니다", getItemDisplay(ingredient), removeIngredientAmount - removeAmount);
                 if (removeAmount == 0) {
                     RecipePlugin.msg(player, errorMsg);
+                    RecipePlugin.getPlugin().getLogger().info("[Recipe Debug] " + player + errorMsg.replaceAll("(§|&)[0-9A-FK-ORa-fk-or]", ""));
                     rollback = true;
                     continue;
                 }
                 if (removeAmount != removeIngredientAmount) {
                     rollbackItemList.add(cloneIngredient);
                     RecipePlugin.msg(player, errorMsg);
+                    RecipePlugin.getPlugin().getLogger().info("[Recipe Debug] " + player + errorMsg.replaceAll("(§|&)[0-9A-FK-ORa-fk-or]", ""));
                     rollback = true;
                     continue;
                 }
@@ -96,11 +101,21 @@ public final class Recipe {
                 if (!rollbackItemList.isEmpty()) {
                     for (ItemStack item : rollbackItemList) {
                         this.giveItem(playerPersistent, player, item, false);
-                        RecipePlugin.msg(player, String.format("%s&7" + PostPostion.postpostion(getItemDisplay(item),2) +" %d개 반환되었습니다", getItemDisplay(item), item.getAmount()));
+                        String message = String.format("%s%s %d개 반환되었습니다", getItemDisplay(item), PostPostion.postpostion(getItemDisplay(item), 2), item.getAmount());
+                        RecipePlugin.msg(player, "&7" + message);
+                        RecipePlugin.getPlugin().getLogger().info("[Recipe Debug] " + player + message);
                     }
                 }
                 return false;
             }
+
+            CookAddedEvent cookAddedEvent = new CookAddedEvent(uuid, this, playerPersistent.toString());
+            Bukkit.getPluginManager().callEvent(cookAddedEvent);
+
+            if (cookAddedEvent.isCancelled()) {
+                continue;
+            }
+
             this.giveItem(playerPersistent, player, this.getResult(), true);
             rollbackItemList.clear();
         }
@@ -119,7 +134,7 @@ public final class Recipe {
                 }
             }
         } else if (!playerNull && giveMsg) {
-            new TempBossbar(player, String.format("%s§f"+ PostPostion.postpostion(this.recipeName,2) +" 제작되어 요리 가방으로 이동되었습니다", this.recipeName));
+            new TempBossbar(player, String.format("%s§f" + PostPostion.postpostion(this.recipeName, 2) + " 제작되어 요리 가방으로 이동되었습니다", this.recipeName));
         }
     }
 
@@ -142,6 +157,7 @@ public final class Recipe {
     public String getRecipeName() {
         return this.recipeName;
     }
+
     public String getResultName() {
         return this.resultName;
     }
@@ -186,6 +202,7 @@ public final class Recipe {
             this.makeTime = makeTime;
             return this;
         }
+
         public RecipeBuilder setsortOrder(int sortOrder) {
             this.sortOrder = sortOrder;
             return this;

@@ -11,16 +11,13 @@ public class PostPostion {
         if (integer == 1) {
             firstValue = "\uc740";
             secondValue = "\ub294";
-        }
-        else if (integer == 2) {
+        } else if (integer == 2) {
             firstValue = "\uc774";
             secondValue = "\uac00";
-        }
-        else if (integer == 3) {
+        } else if (integer == 3) {
             firstValue = "\uc744";
             secondValue = "\ub97c";
-        }
-        else if (integer == 4) {
+        } else if (integer == 4) {
             firstValue = "\uc73c\ub85c";
             secondValue = "\ub85c";
         }

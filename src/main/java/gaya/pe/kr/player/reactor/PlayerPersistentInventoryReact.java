@@ -17,7 +17,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 
 public class PlayerPersistentInventoryReact
-implements Listener {
+        implements Listener {
     Player player;
     PlayerPersistent playerPersistent;
     Inventory inventory;
@@ -28,10 +28,10 @@ implements Listener {
         this.playerPersistent = playerPersistent;
         this.virtualInventory = virtualInventory;
         if (!virtualInventory) {
-            this.inventory = Bukkit.createInventory(null, (int)54, (String)"§7요리 재료");
+            this.inventory = Bukkit.createInventory(null, (int) 54, (String) "§7요리 재료");
             this.inventory.setContents(playerPersistent.getItemStacks());
         } else {
-            this.inventory = Bukkit.createInventory(null, (int)54, (String)"§8요리 가방");
+            this.inventory = Bukkit.createInventory(null, (int) 54, (String) "§8요리 가방");
             this.inventory.setContents(playerPersistent.getVirtualInventory());
         }
     }
@@ -48,7 +48,7 @@ implements Listener {
     @EventHandler
     public void closeInventory(InventoryCloseEvent event) {
         Inventory closedInventory;
-        Player player = (Player)event.getPlayer();
+        Player player = (Player) event.getPlayer();
         if (this.getPlayer().equals(player) && this.inventory.equals(closedInventory = event.getInventory())) {
             CookInventorySavedEvent cookInventorySavedEvent;
             if (this.virtualInventory) {
@@ -60,7 +60,7 @@ implements Listener {
             }
             Bukkit.getPluginManager().callEvent(cookInventorySavedEvent);
 
-            HandlerList.unregisterAll((Listener)this);
+            HandlerList.unregisterAll((Listener) this);
         }
     }
 
@@ -74,7 +74,7 @@ implements Listener {
             return;
         }
         Inventory nowInventory = event.getInventory();
-        Player player = (Player)event.getWhoClicked();
+        Player player = (Player) event.getWhoClicked();
         if (nowInventory.equals(this.inventory)) {
             InventoryAction inventoryAction = event.getAction();
             if (player.getInventory().equals(clickedInventory)) {
@@ -82,7 +82,7 @@ implements Listener {
                     event.setCancelled(true);
                     event.setResult(Event.Result.DENY);
                 }
-            } else if (inventoryAction.equals((Object)InventoryAction.HOTBAR_SWAP)) {
+            } else if (inventoryAction.equals((Object) InventoryAction.HOTBAR_SWAP)) {
                 event.setCancelled(true);
                 event.setResult(Event.Result.DENY);
             }

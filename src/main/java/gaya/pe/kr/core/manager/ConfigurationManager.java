@@ -1,12 +1,14 @@
 package gaya.pe.kr.core.manager;
 
 import gaya.pe.kr.core.RecipePlugin;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
+
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -21,7 +23,7 @@ public class ConfigurationManager {
 
     public FileConfiguration getConfiguration(String relativePath, String resourcePath) {
         File file = new File(this.pluginDataFolder, relativePath);
-        return file.exists() ? YamlConfiguration.loadConfiguration((File)file) : this.getDefaultConfiguration(file, resourcePath);
+        return file.exists() ? YamlConfiguration.loadConfiguration((File) file) : this.getDefaultConfiguration(file, resourcePath);
     }
 
     public void saveConfiguration(FileConfiguration configuration, String relativePath) {
@@ -44,7 +46,7 @@ public class ConfigurationManager {
     private FileConfiguration getDefaultConfiguration(File path, String resourcePath) {
         try {
             InputStreamReader reader = new InputStreamReader(this.plugin.getResource(resourcePath), StandardCharsets.UTF_8);
-            YamlConfiguration fileConfiguration = YamlConfiguration.loadConfiguration((Reader)reader);
+            YamlConfiguration fileConfiguration = YamlConfiguration.loadConfiguration((Reader) reader);
             fileConfiguration.save(path);
             RecipePlugin.log(String.format("&f[ &b%s &f]의&f 설정파일이 정상 &e생성&f 되었습니다", path.getName()));
             return fileConfiguration;
