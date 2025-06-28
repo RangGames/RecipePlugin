@@ -103,6 +103,3 @@ mvn clean package
 ```
 
 This will create the plugin's `.jar` file in the `target` directory.
-
-```
-```
